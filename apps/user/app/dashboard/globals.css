@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+.navBtn {
+    padding: 6px 14px;
+    border: 1px solid black;
+    border-radius: 9999px;
+    font-size: 14px;
+    transition: 0.2s;
+  }
+  
+  .navBtn:hover {
+    background: black;
+    color: white;
+  }

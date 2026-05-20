@@ -1,0 +1,45 @@
+import { prisma } from "@repo/database"
+import { NextRequest, NextResponse } from "next/server"
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+
+  const page = Number(searchParams.get("page") || 1)
+  const limit = Number(searchParams.get("limit") || 10)
+  const search = searchParams.get("search") || ""
+  const status = searchParams.get("status") || ""
+  const paymentMethod = searchParams.get("paymentMethod") || ""
+
+  const where: any = {}
+
+  if (status) where.status = status
+  if (paymentMethod) where.paymentMethod = paymentMethod
+
+  if (search) {
+    where.OR = [
+      { id: Number(search) || undefined },
+      { shippingFullName: { contains: search, mode: "insensitive" } },
+      { shippingPhone: { contains: search } },
+    ]
+  }
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: {
+        user: true,
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.order.count({ where }),
+  ])
+
+  return NextResponse.json({
+    orders,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  })
+}
