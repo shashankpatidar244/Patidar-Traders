@@ -27,7 +27,7 @@ type Props = {
 const SAMPLE_HEADERS: Record<DataType, string[]> = {
   User: ["username", "phone", "password", "role", "isverified", "isblocked"],
   AdminLog: ["action", "entity", "entityid"],
-  Brand: ["name"],
+  Brand: ["brandname"],
   Product: [
     "name",
     "description",
@@ -46,7 +46,7 @@ const SAMPLE_HEADERS: Record<DataType, string[]> = {
     "stock",
   ],
   ProductImage: ["productid", "url"],
-  Category: ["name"],
+  Category: ["categoryname"],
   InventoryLog: ["variantid", "oldstock", "newstock", "action", "adminid"],
   Order: [
     "userid",
@@ -104,34 +104,62 @@ const SAMPLE_DATA: Record<DataType, Record<string, unknown>[]> = {
       isverified: true,
       isblocked: false,
     },
+    {
+      username: "Rahul",
+      phone: "8888888888",
+      password: "654321",
+      role: "ADMIN",
+      isverified: true,
+      isblocked: false,
+    },
   ],
+
   AdminLog: [
     {
       action: "CREATE_PRODUCT",
       entity: "Product",
       entityid: 1,
     },
-  ],
-  Brand: [
     {
-      name: "Apple",
+      action: "UPDATE_PRODUCT",
+      entity: "Product",
+      entityid: 2,
     },
   ],
+
+  Brand: [
+    {
+      brandname: "UPL Agro",
+    },
+    {
+      brandname: "Bayer Cropscience",
+    },
+  ],
+
   Product: [
     {
-      name: "iPhone 15",
-      description: "Latest Apple phone",
-      technicalname: "IPHONE15-128GB",
+      name: "Organic Wheat Seeds",
+      description: "Premium quality wheat seeds for farming",
+      technicalname: "WHEAT-SEED-25KG",
       brandid: 1,
       categoryid: 1,
       isactive: true,
     },
+    {
+      name: "Bio Fertilizer",
+      description: "Natural fertilizer for healthy crop growth",
+      technicalname: "BIO-FERT-10KG",
+      brandid: 2,
+      categoryid: 2,
+      isactive: true,
+    },
   ],
+
   ProductVariant: [
     {
       productid: 1,
-      name: "1 KG",
-      value: "1",
+      name: "Weight",
+      value: "1 kg",
       unit: "KG",
       mrp: 1000,
       sellingprice: 850,
@@ -139,25 +167,44 @@ const SAMPLE_DATA: Record<DataType, Record<string, unknown>[]> = {
     },
     {
       productid: 1,
-      name: "500 GM",
-      value: "500",
+      name: "Weight",
+      value: "500 gm",
       unit: "GM",
       mrp: 600,
       sellingprice: 520,
       stock: 20,
     },
+    {
+      productid: 2,
+      name: "Volume",
+      value: "5 l",
+      unit: "L",
+      mrp: 600,
+      sellingprice: 520,
+      stock: 20,
+    },
   ],
+
   ProductImage: [
     {
       productid: 1,
-      url: "https://example.com/image1.jpg",
+      url: "https://example.com/wheat.jpg",
+    },
+    {
+      productid: 2,
+      url: "https://example.com/fertilizer.jpg",
     },
   ],
+
   Category: [
     {
-      name: "Electronics",
+      categoryname: "Seeds",
+    },
+    {
+      categoryname: "Fertilizers",
     },
   ],
+
   InventoryLog: [
     {
       variantid: 1,
@@ -166,38 +213,60 @@ const SAMPLE_DATA: Record<DataType, Record<string, unknown>[]> = {
       action: "REDUCE",
       adminid: 1,
     },
+    {
+      variantid: 2,
+      oldstock: 20,
+      newstock: 30,
+      action: "ADD",
+      adminid: 2,
+    },
   ],
+
   Order: [
     {
       userid: 1,
       total: 1500,
-
       status: "PENDING",
-
       paymentmethod: "COD",
       paymentstatus: "PENDING",
-
       razorpayorderid: "",
       razorpaypaymentid: "",
       razorpaysignature: "",
-
       paidat: "",
       expiresat: "",
-
       deliverystatus: "PENDING",
       trackingid: "",
-
       shippingname: "Parth Patidar",
       shippingphone: "9999999999",
-
       shippingline1: "Kolar Road",
       shippingline2: "Near Lake",
-
       shippingcity: "Bhopal",
       shippingstate: "MP",
       shippingpincode: "462042",
     },
+    {
+      userid: 2,
+      total: 2200,
+      status: "CONFIRMED",
+      paymentmethod: "UPI",
+      paymentstatus: "PAID",
+      razorpayorderid: "razor_123",
+      razorpaypaymentid: "pay_123",
+      razorpaysignature: "sign_123",
+      paidat: "2026-05-20",
+      expiresat: "",
+      deliverystatus: "PACKED",
+      trackingid: "TRK123456",
+      shippingname: "Rahul Sharma",
+      shippingphone: "8888888888",
+      shippingline1: "MP Nagar",
+      shippingline2: "",
+      shippingcity: "Indore",
+      shippingstate: "MP",
+      shippingpincode: "452001",
+    },
   ],
+
   OrderItem: [
     {
       orderid: 1,
@@ -206,7 +275,15 @@ const SAMPLE_DATA: Record<DataType, Record<string, unknown>[]> = {
       quantity: 2,
       price: 500,
     },
+    {
+      orderid: 2,
+      productid: 2,
+      variantid: 2,
+      quantity: 1,
+      price: 1200,
+    },
   ],
+
   CartItem: [
     {
       userid: 1,
@@ -214,14 +291,27 @@ const SAMPLE_DATA: Record<DataType, Record<string, unknown>[]> = {
       variantid: 1,
       quantity: 1,
     },
+    {
+      userid: 2,
+      productid: 2,
+      variantid: 2,
+      quantity: 3,
+    },
   ],
+
   WishlistItem: [
     {
       userid: 1,
       productid: 1,
       variantid: 1,
     },
+    {
+      userid: 2,
+      productid: 2,
+      variantid: 2,
+    },
   ],
+
   Address: [
     {
       userid: 1,
@@ -233,6 +323,17 @@ const SAMPLE_DATA: Record<DataType, Record<string, unknown>[]> = {
       state: "Delhi",
       pincode: "110001",
       isdefault: true,
+    },
+    {
+      userid: 2,
+      fullname: "Rahul Sharma",
+      phone: "8888888888",
+      line1: "MG Road",
+      line2: "Near Bus Stand",
+      city: "Indore",
+      state: "MP",
+      pincode: "452001",
+      isdefault: false,
     },
   ],
 };

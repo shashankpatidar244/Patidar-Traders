@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@repo/database";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 // ================= HELPERS =================
 
@@ -19,18 +20,44 @@ const normalizeRow = (row: Record<string, any>) => {
   return newRow;
 };
 
-const toBool = (val: any) => String(val).toLowerCase() === "true";
+const toBool = (val: any) => {
+  if (typeof val === "boolean") {
+    return val;
+  }
+
+  const normalized = String(val).trim().toLowerCase();
+
+  return ["true", "1", "yes"].includes(normalized);
+};
 
 const toInt = (val: any) => {
+  if (val === null || val === undefined || val === "") {
+    return null;
+  }
+
   const num = parseInt(val);
 
   return isNaN(num) ? null : num;
 };
 
 const toFloat = (val: any) => {
+  if (val === null || val === undefined || val === "") {
+    return null;
+  }
+
   const num = parseFloat(val);
 
   return isNaN(num) ? null : num;
+};
+
+const toDate = (val: any) => {
+  if (!val || val === "null" || val === "") {
+    return null;
+  }
+
+  const date = new Date(val);
+
+  return isNaN(date.getTime()) ? null : date;
 };
 
 // ================= ENUMS =================
@@ -45,7 +72,12 @@ const OrderStatusEnum = z.enum([
   "CANCELLED",
 ]);
 
-const PaymentStatusEnum = z.enum(["PENDING", "PAID", "FAILED", "REFUNDED"]);
+const PaymentStatusEnum = z.enum([
+  "PENDING",
+  "PAID",
+  "FAILED",
+  "REFUNDED",
+]);
 
 const PaymentMethodEnum = z.enum(["COD", "UPI", "CARD"]);
 
@@ -65,11 +97,10 @@ const UnitEnum = z.enum(["GM", "KG", "ML", "L", "PCS"]);
 // ================= SCHEMAS =================
 
 const schemas = {
-  // ================= USER =================
   User: z.object({
     username: z.string().optional(),
 
-    phone: z.union([z.string(), z.number()]).transform((v) => String(v)),
+    phone: z.union([z.string(), z.number()]).transform(String),
 
     password: z
       .union([z.string(), z.number(), z.undefined()])
@@ -83,7 +114,6 @@ const schemas = {
     isblocked: z.any().optional(),
   }),
 
-  // ================= ADMIN LOG =================
   AdminLog: z.object({
     action: z.string(),
 
@@ -92,17 +122,14 @@ const schemas = {
     entityid: z.union([z.string(), z.number()]).transform(Number),
   }),
 
-  // ================= BRAND =================
   Brand: z.object({
-    name: z.string().min(1),
+    brandname: z.string().min(1),
   }),
 
-  // ================= CATEGORY =================
   Category: z.object({
-    name: z.string().min(1),
+    categoryname: z.string().min(1),
   }),
 
-  // ================= PRODUCT =================
   Product: z.object({
     name: z.string().min(1),
 
@@ -113,17 +140,16 @@ const schemas = {
     brandid: z
       .union([z.string(), z.number(), z.undefined()])
       .optional()
-      .transform((v) => (v != null ? Number(v) : undefined)),
+      .transform((v) => (v != null ? Number(v) : null)),
 
     categoryid: z
       .union([z.string(), z.number(), z.undefined()])
       .optional()
-      .transform((v) => (v != null ? Number(v) : undefined)),
+      .transform((v) => (v != null ? Number(v) : null)),
 
     isactive: z.any().optional(),
   }),
 
-  // ================= PRODUCT VARIANT =================
   ProductVariant: z.object({
     productid: z.union([z.string(), z.number()]).transform(Number),
 
@@ -134,12 +160,12 @@ const schemas = {
     mrp: z
       .union([z.string(), z.number(), z.null()])
       .optional()
-      .transform((v) => (v != null ? Number(v) : undefined)),
+      .transform((v) => (v != null ? Number(v) : null)),
 
     sellingprice: z
       .union([z.string(), z.number(), z.null()])
       .optional()
-      .transform((v) => (v != null ? Number(v) : undefined)),
+      .transform((v) => (v != null ? Number(v) : null)),
 
     stock: z
       .union([z.string(), z.number(), z.null()])
@@ -149,14 +175,12 @@ const schemas = {
     unit: z.string().optional(),
   }),
 
-  // ================= PRODUCT IMAGE =================
   ProductImage: z.object({
     productid: z.union([z.string(), z.number()]).transform(Number),
 
     url: z.string().url(),
   }),
 
-  // ================= INVENTORY LOG =================
   InventoryLog: z.object({
     variantid: z.union([z.string(), z.number()]).transform(Number),
 
@@ -178,17 +202,16 @@ const schemas = {
       .transform((v) => (v != null ? Number(v) : null)),
   }),
 
-  // ================= ORDER =================
   Order: z.object({
     userid: z.union([z.string(), z.number()]).transform(Number),
 
     total: z.union([z.string(), z.number()]).transform(Number),
 
-    status: z.string().optional(),
+    status: z.union([z.string(), z.null()]).optional(),
 
-    paymentmethod: z.string().optional(),
+    paymentmethod: z.union([z.string(), z.null()]).optional(),
 
-    paymentstatus: z.string().optional(),
+    paymentstatus: z.union([z.string(), z.null()]).optional(),
 
     razorpayorderid: z.union([z.string(), z.null()]).optional(),
 
@@ -196,13 +219,13 @@ const schemas = {
 
     razorpaysignature: z.union([z.string(), z.null()]).optional(),
 
-    paidat: z.union([z.string(), z.date(), z.null()]).optional(),
+    paidat: z.any().optional(),
 
-    expiresat: z.union([z.string(), z.date(), z.null()]).optional(),
+    expiresat: z.any().optional(),
 
-    deliverystatus: z.string().optional(),
+    deliverystatus: z.union([z.string(), z.null()]).optional(),
 
-    trackingid: z.string().optional(),
+    trackingid: z.union([z.string(), z.null()]).optional(),
 
     shippingname: z.string(),
 
@@ -210,7 +233,7 @@ const schemas = {
 
     shippingline1: z.string(),
 
-    shippingline2: z.string().optional(),
+    shippingline2: z.union([z.string(), z.null()]).optional(),
 
     shippingcity: z.string(),
 
@@ -219,7 +242,6 @@ const schemas = {
     shippingpincode: z.union([z.string(), z.number()]).transform(String),
   }),
 
-  // ================= ORDER ITEM =================
   OrderItem: z.object({
     orderid: z.union([z.string(), z.number()]).transform(Number),
 
@@ -235,7 +257,6 @@ const schemas = {
     price: z.union([z.string(), z.number()]).transform(Number),
   }),
 
-  // ================= CART ITEM =================
   CartItem: z.object({
     userid: z.union([z.string(), z.number()]).transform(Number),
 
@@ -244,7 +265,7 @@ const schemas = {
     variantid: z
       .union([z.string(), z.number(), z.undefined()])
       .optional()
-      .transform((v) => (v != null ? Number(v) : undefined)),
+      .transform((v) => (v != null ? Number(v) : null)),
 
     quantity: z
       .union([z.string(), z.number(), z.undefined()])
@@ -252,7 +273,6 @@ const schemas = {
       .transform((v) => (v != null ? Number(v) : 1)),
   }),
 
-  // ================= WISHLIST ITEM =================
   WishlistItem: z.object({
     userid: z.union([z.string(), z.number()]).transform(Number),
 
@@ -261,7 +281,6 @@ const schemas = {
     variantid: z.union([z.string(), z.number()]).transform(Number),
   }),
 
-  // ================= ADDRESS =================
   Address: z.object({
     userid: z.union([z.string(), z.number()]).transform(Number),
 
@@ -271,7 +290,7 @@ const schemas = {
 
     line1: z.string(),
 
-    line2: z.string().optional(),
+    line2: z.union([z.string(), z.null()]).optional(),
 
     city: z.string(),
 
@@ -286,7 +305,6 @@ const schemas = {
 // ================= TRANSFORMERS =================
 
 const transformers = {
-  // ================= USER =================
   User: async (r: any) => ({
     username: r.username ?? null,
 
@@ -298,10 +316,11 @@ const transformers = {
 
     role: RoleEnum.safeParse(r.role).success ? r.role : "USER",
 
-    password: r.password ? await bcrypt.hash(r.password, 10) : null,
+    password: r.password
+      ? await bcrypt.hash(r.password, 10)
+      : null,
   }),
 
-  // ================= ADMIN LOG =================
   AdminLog: async (r: any) => ({
     action: r.action,
 
@@ -310,17 +329,14 @@ const transformers = {
     entityId: r.entityid,
   }),
 
-  // ================= BRAND =================
   Brand: async (r: any) => ({
-    name: r.name.trim(),
+    name: r.brandname.trim(),
   }),
 
-  // ================= CATEGORY =================
   Category: async (r: any) => ({
-    name: r.name.trim(),
+    name: r.categoryname.trim(),
   }),
 
-  // ================= PRODUCT =================
   Product: async (r: any) => ({
     name: r.name.trim(),
 
@@ -335,7 +351,6 @@ const transformers = {
     isActive: r.isactive !== "false",
   }),
 
-  // ================= PRODUCT VARIANT =================
   ProductVariant: async (r: any) => ({
     productId: r.productid,
 
@@ -343,23 +358,26 @@ const transformers = {
 
     value: r.value || "",
 
-    mrp: r.mrp ?? null,
+    mrp: r.mrp != null ? new Prisma.Decimal(r.mrp) : null,
 
-    sellingPrice: r.sellingprice ?? r.mrp ?? null,
+    sellingPrice:
+      r.sellingprice != null
+        ? new Prisma.Decimal(r.sellingprice)
+        : r.mrp != null
+        ? new Prisma.Decimal(r.mrp)
+        : null,
 
     stock: r.stock ?? 0,
 
     unit: UnitEnum.safeParse(r.unit).success ? r.unit : null,
   }),
 
-  // ================= PRODUCT IMAGE =================
   ProductImage: async (r: any) => ({
     productId: r.productid,
 
     url: r.url,
   }),
 
-  // ================= INVENTORY LOG =================
   InventoryLog: async (r: any) => ({
     variantId: r.variantid,
 
@@ -367,18 +385,21 @@ const transformers = {
 
     newStock: r.newstock ?? 0,
 
-    action: InventoryActionEnum.safeParse(r.action).success ? r.action : "SET",
+    action: InventoryActionEnum.safeParse(r.action).success
+      ? r.action
+      : "SET",
 
     adminId: r.adminid ?? null,
   }),
 
-  // ================= ORDER =================
   Order: async (r: any) => ({
     userId: r.userid,
 
-    total: r.total ?? 0,
+    total: new Prisma.Decimal(r.total ?? 0),
 
-    status: OrderStatusEnum.safeParse(r.status).success ? r.status : "PENDING",
+    status: OrderStatusEnum.safeParse(r.status).success
+      ? r.status
+      : "PENDING",
 
     paymentMethod: PaymentMethodEnum.safeParse(r.paymentmethod).success
       ? r.paymentmethod
@@ -394,9 +415,9 @@ const transformers = {
 
     razorpaySignature: r.razorpaysignature ?? null,
 
-    paidAt: r.paidat ? new Date(r.paidat) : null,
+    paidAt: toDate(r.paidat),
 
-    expiresAt: r.expiresat ? new Date(r.expiresat) : null,
+    expiresAt: toDate(r.expiresat),
 
     deliveryStatus: DeliveryStatusEnum.safeParse(r.deliverystatus).success
       ? r.deliverystatus
@@ -419,7 +440,6 @@ const transformers = {
     shippingPincode: r.shippingpincode,
   }),
 
-  // ================= ORDER ITEM =================
   OrderItem: async (r: any) => ({
     orderId: r.orderid,
 
@@ -429,10 +449,9 @@ const transformers = {
 
     quantity: r.quantity,
 
-    price: r.price,
+    price: new Prisma.Decimal(r.price),
   }),
 
-  // ================= CART ITEM =================
   CartItem: async (r: any) => ({
     userId: r.userid,
 
@@ -443,7 +462,6 @@ const transformers = {
     quantity: r.quantity ?? 1,
   }),
 
-  // ================= WISHLIST ITEM =================
   WishlistItem: async (r: any) => ({
     userId: r.userid,
 
@@ -452,7 +470,6 @@ const transformers = {
     variantId: r.variantid,
   }),
 
-  // ================= ADDRESS =================
   Address: async (r: any) => ({
     userId: r.userid,
 
@@ -478,29 +495,17 @@ const transformers = {
 
 const prismaMap = {
   User: prisma.user,
-
   AdminLog: prisma.adminLog,
-
   Brand: prisma.brand,
-
   Category: prisma.category,
-
   Product: prisma.product,
-
   ProductVariant: prisma.productVariant,
-
   ProductImage: prisma.productImage,
-
   InventoryLog: prisma.inventoryLog,
-
   Order: prisma.order,
-
   OrderItem: prisma.orderItem,
-
   CartItem: prisma.cartItem,
-
   WishlistItem: prisma.wishlistItem,
-
   Address: prisma.address,
 } as const;
 
@@ -512,7 +517,7 @@ function isValidType(type: string): type is ImportType {
   return type in schemas;
 }
 
-// ================= MAIN API =================
+// ================= MAIN =================
 
 export async function POST(req: Request) {
   try {
@@ -520,21 +525,16 @@ export async function POST(req: Request) {
 
     const { type, data } = body;
 
-    // ================= VALIDATION =================
     if (!type || !Array.isArray(data)) {
       return NextResponse.json(
-        {
-          error: "Invalid request",
-        },
+        { error: "Invalid request" },
         { status: 400 }
       );
     }
 
     if (!isValidType(type)) {
       return NextResponse.json(
-        {
-          error: "Unsupported type",
-        },
+        { error: "Unsupported type" },
         { status: 400 }
       );
     }
@@ -550,7 +550,8 @@ export async function POST(req: Request) {
       error: string;
     }[] = [];
 
-    // ================= PREPARE DATA =================
+    // ================= PREPARE =================
+
     const preparedData = await Promise.all(
       data.map(async (row, index) => {
         try {
@@ -558,11 +559,12 @@ export async function POST(req: Request) {
 
           const parsed = schema.safeParse(normalized);
 
-          // ================= ZOD ERROR =================
           if (!parsed.success) {
             errors.push({
               row: index + 1,
-              error: parsed.error.issues.map((i) => i.message).join(", "),
+              error: parsed.error.issues
+                .map((i) => i.message)
+                .join(", "),
             });
 
             return null;
@@ -570,7 +572,10 @@ export async function POST(req: Request) {
 
           const transformed = await transformer(parsed.data);
 
-          return transformed;
+          return {
+            __row: index + 1,
+            ...transformed,
+          };
         } catch (err: any) {
           errors.push({
             row: index + 1,
@@ -582,37 +587,227 @@ export async function POST(req: Request) {
       })
     );
 
-    const finalData = preparedData.filter(notNull);
+    const finalData = preparedData.filter(notNull).filter(Boolean);
 
-    // ================= NO VALID DATA =================
     if (finalData.length === 0) {
       return NextResponse.json({
         message: "No valid rows",
-
         success: 0,
-
         failed: data.length,
-
         total: data.length,
-
         errors,
       });
     }
 
-    // ================= INSERT =================
-    const result = await model.createMany({
-      data: finalData,
+    // ================= FK VALIDATION =================
 
-      skipDuplicates: true,
+    async function validateForeignKeys(rows: any[]) {
+      const validRows: any[] = [];
+
+      const checkExists = async (
+        ids: number[],
+        model: any
+      ) => {
+        const items = await model.findMany({
+          where: {
+            id: {
+              in: ids,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        return new Set(items.map((i: any) => i.id));
+      };
+
+      for (const row of rows) {
+        try {
+          // PRODUCT
+          if (type === "Product") {
+            if (row.brandId) {
+              const brands = await checkExists(
+                [row.brandId],
+                prisma.brand
+              );
+
+              if (!brands.has(row.brandId)) {
+                errors.push({
+                  row: row.__row,
+                  error: `Brand not found: ${row.brandId}`,
+                });
+
+                continue;
+              }
+            }
+
+            if (row.categoryId) {
+              const categories = await checkExists(
+                [row.categoryId],
+                prisma.category
+              );
+
+              if (!categories.has(row.categoryId)) {
+                errors.push({
+                  row: row.__row,
+                  error: `Category not found: ${row.categoryId}`,
+                });
+
+                continue;
+              }
+            }
+          }
+
+          // PRODUCT VARIANT
+          if (type === "ProductVariant") {
+            const products = await checkExists(
+              [row.productId],
+              prisma.product
+            );
+
+            if (!products.has(row.productId)) {
+              errors.push({
+                row: row.__row,
+                error: `Product not found: ${row.productId}`,
+              });
+
+              continue;
+            }
+          }
+
+          // PRODUCT IMAGE
+          if (type === "ProductImage") {
+            const products = await checkExists(
+              [row.productId],
+              prisma.product
+            );
+
+            if (!products.has(row.productId)) {
+              errors.push({
+                row: row.__row,
+                error: `Product not found: ${row.productId}`,
+              });
+
+              continue;
+            }
+          }
+
+          // INVENTORY LOG
+          if (type === "InventoryLog") {
+            const variants = await checkExists(
+              [row.variantId],
+              prisma.productVariant
+            );
+
+            if (!variants.has(row.variantId)) {
+              errors.push({
+                row: row.__row,
+                error: `Variant not found: ${row.variantId}`,
+              });
+
+              continue;
+            }
+          }
+
+          validRows.push(row);
+        } catch (err: any) {
+          errors.push({
+            row: row.__row,
+            error: err.message ?? "FK validation failed",
+          });
+        }
+      }
+
+      return validRows;
+    }
+
+    const validRows = await validateForeignKeys(finalData);
+
+    if (validRows.length === 0) {
+      return NextResponse.json({
+        message: "No valid rows",
+        success: 0,
+        failed: data.length,
+        total: data.length,
+        errors,
+      });
+    }
+
+    const cleanedRows = validRows.map((r) => {
+      const { __row, ...rest } = r;
+
+      return rest;
     });
 
+    // ================= RELATIONAL =================
+
+    const relationalModels = [
+      "Address",
+      "WishlistItem",
+      "CartItem",
+      "Order",
+      "OrderItem",
+      "Product",
+      "ProductVariant",
+      "ProductImage",
+      "InventoryLog",
+    ];
+
+    let success = 0;
+
+    // ================= SAFE INSERT =================
+
+    if (relationalModels.includes(type)) {
+      const results = await Promise.allSettled(
+        cleanedRows.map((row) =>
+          model.create({
+            data: row,
+          })
+        )
+      );
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          success++;
+        } else {
+          errors.push({
+            row: validRows[index].__row,
+            error:
+              result.reason?.code === "P2002"
+                ? "Duplicate entry"
+                : result.reason?.message ?? "Insert failed",
+          });
+        }
+      });
+    }
+
+    // ================= BULK INSERT =================
+
+    else {
+      try {
+        const result = await model.createMany({
+          data: cleanedRows,
+          skipDuplicates: true,
+        });
+
+        success = result.count;
+      } catch (err: any) {
+        errors.push({
+          row: 0,
+          error: err.message ?? "Bulk insert failed",
+        });
+      }
+    }
+
     // ================= RESPONSE =================
+
     return NextResponse.json({
       message: "Import completed",
 
-      success: result.count,
+      success,
 
-      failed: data.length - result.count,
+      failed: data.length - success,
 
       total: data.length,
 

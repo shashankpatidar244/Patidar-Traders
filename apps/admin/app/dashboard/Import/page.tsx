@@ -30,46 +30,159 @@ const DATA_TYPES = [
 
 type DataType = (typeof DATA_TYPES)[number];
 
+type CsvRow = Record<string, string>;
+
 // ================= REQUIRED FIELDS =================
-const REQUIRED_FIELDS: Record<DataType, string[]> = {
-  User: ["phone"],
-  AdminLog: ["action", "entity", "entityid"],
-  Brand: ["name"],
-  Product: ["name"],
-  ProductVariant: ["productid", "name", "value"],
-  ProductImage: ["url", "productid"],
-  Category: ["name"],
-  InventoryLog: ["variantid", "oldstock", "newstock", "action"],
+
+
+const CSV_FIELDS: Record<DataType, string[]> = {
+  User: [
+    "username",
+    "phone",
+    "password",
+    "role",
+    "isverified",
+    "isblocked",
+  ],
+
+  AdminLog: [
+    "action",
+    "entity",
+    "entityid",
+  ],
+
+  Brand: [
+    "brandname",
+  ],
+  
+  Category: [
+    "categoryname",
+  ],
+
+
+  Product: [
+    "name",
+    "description",
+    "technicalname",
+    "brandid",
+    "categoryid",
+    "isactive",
+  ],
+
+  ProductVariant: [
+    "productid",
+    "name",
+    "value",
+    "mrp",
+    "sellingprice",
+    "stock",
+    "unit",
+  ],
+
+  ProductImage: [
+    "productid",
+    "url",
+  ],
+
+  InventoryLog: [
+    "variantid",
+    "oldstock",
+    "newstock",
+    "action",
+    "adminid",
+  ],
+
   Order: [
     "userid",
     "total",
-
+    "status",
+    "paymentmethod",
+    "paymentstatus",
+    "razorpayorderid",
+    "razorpaypaymentid",
+    "razorpaysignature",
+    "paidat",
+    "expiresat",
+    "deliverystatus",
+    "trackingid",
     "shippingname",
     "shippingphone",
-
     "shippingline1",
-
+    "shippingline2",
     "shippingcity",
     "shippingstate",
     "shippingpincode",
   ],
-  OrderItem: ["orderid", "productid", "quantity", "price"],
-  CartItem: ["userid", "productid"],
-  WishlistItem: ["userid", "productid", "variantid"],
-  Address: ["userid", "fullname", "phone", "line1", "city", "state", "pincode"],
+
+  OrderItem: [
+    "orderid",
+    "productid",
+    "variantid",
+    "quantity",
+    "price",
+  ],
+
+  CartItem: [
+    "userid",
+    "productid",
+    "variantid",
+    "quantity",
+  ],
+
+  WishlistItem: [
+    "userid",
+    "productid",
+    "variantid",
+  ],
+
+  Address: [
+    "userid",
+    "fullname",
+    "phone",
+    "line1",
+    "line2",
+    "city",
+    "state",
+    "pincode",
+    "isdefault",
+  ],
 };
 
 // ================= VALIDATION =================
-const validateCsvType = (row: Record<string, unknown>, type: DataType) => {
-  const required = REQUIRED_FIELDS[type];
+const validateCsvType = (
+  row: Record<string, unknown>,
+  type: DataType
+) => {
+  const keys = Object.keys(row).map((k) =>
+    k.trim().toLowerCase()
+  );
 
-  // convert all CSV columns to lowercase
-  const keys = Object.keys(row).map((k) => k.trim().toLowerCase());
+  const required = CSV_FIELDS[type].map((f) =>
+    f.toLowerCase()
+  );
 
-  // check all required fields exist
-  return required.every((field) => keys.includes(field.toLowerCase()));
+  const validFields = CSV_FIELDS[type].map((f) =>
+    f.toLowerCase()
+  );
+
+  const hasAllRequired = required.every((field) =>
+    keys.includes(field)
+  );
+
+  if (!hasAllRequired) {
+    return false;
+  }
+
+  const invalidFields = keys.filter(
+    (key) => !validFields.includes(key)
+  );
+
+  if (invalidFields.length > 0) {
+    return false;
+  }
+
+  return true;
 };
-
 // ================= COMPONENT =================
 export default function CsvImport() {
   // ================= STATES =================
@@ -81,7 +194,7 @@ export default function CsvImport() {
 
   const [dragActive, setDragActive] = useState(false);
 
-  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [previewData, setPreviewData] = useState<CsvRow[]>([]);
 
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -93,11 +206,12 @@ export default function CsvImport() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ================= PARSE FILE =================
-  const parseFile = (file: File) => {
-    setFile(file);
+  // ================= RESET =================
+  const resetState = () => {
+    setFile(null);
 
-    // reset
+    setPreviewData([]);
+
     setErrors([]);
 
     setSummary({
@@ -106,33 +220,62 @@ export default function CsvImport() {
       total: 0,
     });
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: true,
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
 
-      // only first row for validation
+  // ================= PARSE FILE =================
+  const parseFile = (selectedFile: File) => {
+    // ================= FILE TYPE CHECK =================
+    if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
+      toast.error("Only CSV files allowed ❌");
+      return;
+    }
+
+    setFile(selectedFile);
+
+    setErrors([]);
+
+    setSummary({
+      success: 0,
+      failed: 0,
+      total: 0,
+    });
+
+    // ================= VALIDATE FIRST ROW =================
+    Papa.parse(selectedFile, {
+      header: true,
+
+      skipEmptyLines: true,
+
+      dynamicTyping: false,
+
+      worker: true,
+
       preview: 1,
 
       complete: (res) => {
-        const firstRow = res.data?.[0] as Record<string, unknown> | undefined;
+        const firstRow = res.data?.[0] as
+          | Record<string, unknown>
+          | undefined;
 
         // ================= EMPTY CSV =================
         if (!firstRow) {
           toast.error("Empty CSV file ❌");
 
-          setFile(null);
+          resetState();
 
           return;
         }
 
-        // ================= INVALID TYPE =================
+        // ================= INVALID CSV TYPE =================
         if (!validateCsvType(firstRow, type)) {
           toast.error("Wrong file type selected ❌");
 
           setErrors([
             `Invalid CSV for "${type}"`,
-            `Expected columns: ${REQUIRED_FIELDS[type].join(", ")}`,
+            `Expected columns: ${CSV_FIELDS[type].join(", ")}`,
             `Found columns: ${Object.keys(firstRow).join(", ")}`,
           ]);
 
@@ -144,28 +287,35 @@ export default function CsvImport() {
         }
 
         // ================= LOAD PREVIEW =================
-        Papa.parse(file, {
+        Papa.parse(selectedFile, {
           header: true,
-          skipEmptyLines: true,
-          dynamicTyping: true,
 
-          // first 10 rows
+          skipEmptyLines: true,
+
+          dynamicTyping: false,
+
+          worker: true,
+
           preview: 10,
 
-          complete: (res) => {
-            setPreviewData((res.data as any[]) || []);
+          complete: (previewRes) => {
+            setPreviewData(
+              (previewRes.data as CsvRow[]) || []
+            );
 
             toast.success("CSV loaded successfully ✅");
           },
 
           error: () => {
-            toast.error("CSV parsing failed ❌");
+            toast.error("CSV preview failed ❌");
           },
         });
       },
 
       error: () => {
         toast.error("CSV parsing failed ❌");
+
+        resetState();
       },
     });
   };
@@ -173,15 +323,19 @@ export default function CsvImport() {
   // ================= UPLOAD =================
   const handleUpload = async () => {
     if (!file) {
-      return toast.error("Please select a file");
+      return toast.error("Please select a CSV file");
     }
 
     setLoading(true);
 
     Papa.parse(file, {
       header: true,
+
       skipEmptyLines: true,
-      dynamicTyping: true,
+
+      dynamicTyping: false,
+
+      worker: true,
 
       complete: async (res) => {
         try {
@@ -198,6 +352,11 @@ export default function CsvImport() {
             }),
           });
 
+          // ================= HTTP ERROR =================
+          if (!response.ok) {
+            throw new Error("Import request failed");
+          }
+
           const data = await response.json();
 
           // ================= SUMMARY =================
@@ -208,8 +367,18 @@ export default function CsvImport() {
           });
 
           // ================= ERRORS =================
-          if (data.errors && Array.isArray(data.errors)) {
-            setErrors(data.errors.map((e: any) => `Row ${e.row}: ${e.error}`));
+          if (
+            data.errors &&
+            Array.isArray(data.errors)
+          ) {
+            setErrors(
+              data.errors.map(
+                (e: {
+                  row: number;
+                  error: string;
+                }) => `Row ${e.row}: ${e.error}`
+              )
+            );
           } else {
             setErrors([]);
           }
@@ -237,21 +406,6 @@ export default function CsvImport() {
     });
   };
 
-  // ================= RESET =================
-  const handleReset = () => {
-    setFile(null);
-
-    setPreviewData([]);
-
-    setErrors([]);
-
-    setSummary({
-      success: 0,
-      failed: 0,
-      total: 0,
-    });
-  };
-
   // ================= UI =================
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -262,7 +416,8 @@ export default function CsvImport() {
         </h1>
 
         <p className="text-sm text-gray-500 mt-1">
-          Upload CSV files to bulk import data into your system
+          Upload CSV files to bulk import data into your
+          system
         </p>
       </div>
 
@@ -274,7 +429,11 @@ export default function CsvImport() {
 
         <select
           value={type}
-          onChange={(e) => setType(e.target.value as DataType)}
+          onChange={(e) => {
+            setType(e.target.value as DataType);
+
+            resetState();
+          }}
           className="mt-2 w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
         >
           {DATA_TYPES.map((t) => (
@@ -316,23 +475,26 @@ export default function CsvImport() {
 
       {/* ================= ACTIONS ================= */}
       <div className="flex gap-3">
-        {/* IMPORT BUTTON */}
+        {/* ================= IMPORT BUTTON ================= */}
         <button
           onClick={handleUpload}
-          disabled={loading}
-          className="flex items-center justify-center gap-2 w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition disabled:opacity-60"
+          disabled={
+            loading || previewData.length === 0
+          }
+          className="flex items-center justify-center gap-2 w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 active:scale-95 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <UploadCloud size={18} />
 
           {loading ? "Importing..." : "Start Import"}
         </button>
 
-        {/* RESET BUTTON */}
+        {/* ================= RESET BUTTON ================= */}
         <button
-          onClick={handleReset}
+          onClick={resetState}
           className="flex items-center justify-center gap-2 w-full bg-gray-200 dark:bg-gray-700 py-3 rounded-xl font-medium hover:bg-gray-300 active:scale-95 transition"
         >
           <RefreshCcw size={16} />
+
           Reset
         </button>
       </div>
