@@ -8,7 +8,7 @@ import SummaryCards from "./components/SummaryCards";
 import BulkActions from "./components/BulkActions";
 import ImportInventory from "./components/ImportInventory";
 import { useInventory } from "./hooks/useInventory";
-import Pagination from "./components/Pagination";
+import Pagination from "../components/Pagination";
 
 export default function InventoryPage() {
   const [filters, setFilters] = useState({ search: "", status: "" });
@@ -68,6 +68,7 @@ export default function InventoryPage() {
 
       {/* PAGINATION */}
       <Pagination
+        title="Inventory"
         page={page}
         totalPages={totalPages}
         currentLimit={currentLimit}

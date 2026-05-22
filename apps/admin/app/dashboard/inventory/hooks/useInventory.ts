@@ -7,7 +7,6 @@ export function useInventory(filters: any) {
   const [page, setPage] = useState(1);
 
   const [currentLimit, setCurrentLimit] = useState(10);
-
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {

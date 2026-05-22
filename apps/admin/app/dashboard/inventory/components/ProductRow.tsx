@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import VariantRow from "./VariantRow"
+import VariantRow from "./VariantRow";
 
 export default function ProductRow({
   group,
@@ -11,68 +11,63 @@ export default function ProductRow({
   updateLocalStock,
   onHistory,
 }: any) {
-  const product = group.product
-  const variants = group.variants
+  const product = group.product;
+  const variants = group.variants;
 
-  const variantIds = variants.map((v: any) => v.id)
+  const variantIds = variants.map((v: any) => v.id);
 
-  const allSelected = variantIds.every((id: number) =>
-    selected.includes(id)
-  )
+  const allSelected = variantIds.every((id: number) => selected.includes(id));
 
   const someSelected =
-    variantIds.some((id: number) => selected.includes(id)) &&
-    !allSelected
+    variantIds.some((id: number) => selected.includes(id)) && !allSelected;
 
   function toggleAll(e: any) {
-    e.stopPropagation()
+    e.stopPropagation();
 
     if (allSelected) {
       setSelected((prev: number[]) =>
         prev.filter((id) => !variantIds.includes(id))
-      )
+      );
     } else {
-      setSelected((prev: number[]) => [
-        ...new Set([...prev, ...variantIds]),
-      ])
+      setSelected((prev: number[]) => [...new Set([...prev, ...variantIds])]);
     }
   }
 
-  // 🔥 CALCULATIONS
-  const totalStock = variants.reduce((sum: number, v: any) => sum + v.stock, 0)
+  // CALCULATIONS
+  const totalStock = variants.reduce((sum: number, v: any) => sum + v.stock, 0);
 
-  const prices = variants.map((v: any) => v.sellingPrice || v.mrp || 0)
-  const minPrice = Math.min(...prices)
-  const maxPrice = Math.max(...prices)
+  const prices = variants.map((v: any) => v.sellingPrice || v.mrp || 0);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
 
-  const outCount = variants.filter((v: any) => v.stock === 0).length
-  const lowCount = variants.filter((v: any) => v.stock > 0 && v.stock < 10).length
+  const outCount = variants.filter((v: any) => v.stock === 0).length;
+  const lowCount = variants.filter(
+    (v: any) => v.stock > 0 && v.stock < 10
+  ).length;
 
-  // 🎯 HEALTH STATUS
+  // HEALTH STATUS
   const health =
     outCount > 0
       ? { label: "Risk", color: "bg-red-100 text-red-700" }
       : lowCount > 0
-      ? { label: "Low", color: "bg-yellow-100 text-yellow-700" }
-      : { label: "Healthy", color: "bg-green-100 text-green-700" }
+        ? { label: "Low", color: "bg-yellow-100 text-yellow-700" }
+        : { label: "Healthy", color: "bg-green-100 text-green-700" };
 
   return (
     <div className="border-b bg-white">
-
-      {/* 🔷 PRODUCT HEADER (CARD STYLE) */}
+      {/* PRODUCT HEADER (CARD STYLE) */}
       <div
         onClick={toggle}
         className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 transition"
       >
         {/* LEFT SIDE */}
         <div className="flex items-center gap-4">
-
           {/* CHECKBOX */}
           <input
             type="checkbox"
             checked={allSelected}
             ref={(el) => {
-              if (el) el.indeterminate = someSelected
+              if (el) el.indeterminate = someSelected;
             }}
             onChange={toggleAll}
             onClick={(e) => e.stopPropagation()}
@@ -80,9 +75,7 @@ export default function ProductRow({
           />
 
           {/* EXPAND ICON */}
-          <div className="text-gray-500 text-lg">
-            {open ? "▾" : "▸"}
-          </div>
+          <div className="text-gray-500 text-lg">{open ? "▾" : "▸"}</div>
 
           {/* IMAGE */}
           <img
@@ -92,7 +85,6 @@ export default function ProductRow({
 
           {/* INFO BLOCK */}
           <div className="flex flex-col">
-
             {/* NAME */}
             <p className="font-semibold text-gray-900 text-[15px]">
               {product.name}
@@ -117,9 +109,10 @@ export default function ProductRow({
 
         {/* RIGHT SIDE */}
         <div className="flex items-center gap-8">
-
           {/* HEALTH BADGE */}
-          <div className={`text-xs px-3 py-1 rounded-full font-medium ${health.color}`}>
+          <div
+            className={`text-xs px-3 py-1 rounded-full font-medium ${health.color}`}
+          >
             {health.label}
           </div>
 
@@ -142,29 +135,25 @@ export default function ProductRow({
             <p className="font-bold text-lg text-gray-900 leading-none">
               {totalStock}
             </p>
-            <p className="text-[11px] text-gray-400 uppercase">
-              Stock
-            </p>
+            <p className="text-[11px] text-gray-400 uppercase">Stock</p>
           </div>
         </div>
       </div>
 
-      {/* 🔽 VARIANTS */}
+      {/* VARIANTS */}
       {open && (
         <div className="bg-gray-50 border-t">
-
           {/* LABEL ROW */}
           <div className="grid grid-cols-[50px_80px_2fr_1.3fr_1fr_1.2fr_1.4fr_1.5fr] px-6 py-2 text-[11px] font-semibold text-gray-500 uppercase bg-gray-100 border-t">
-          <div className="text-center">✓</div>
-          <div className="text-center">ID</div>
-          <div>Variant</div>
-          <div>Price</div>
-          <div>Stock</div>
-          <div>Status</div>
-          <div>Updated</div>
-          <div className="text-right pr-2">Actions</div>
-
-        </div>
+            <div className="text-center">✓</div>
+            <div className="text-center">ID</div>
+            <div>Variant</div>
+            <div>Price</div>
+            <div>Stock</div>
+            <div>Status</div>
+            <div>Updated</div>
+            <div className="text-right pr-2">Actions</div>
+          </div>
 
           {/* VARIANTS */}
           {variants.map((v: any) => (
@@ -177,9 +166,8 @@ export default function ProductRow({
               onHistory={onHistory}
             />
           ))}
-
         </div>
       )}
     </div>
-  )
+  );
 }
