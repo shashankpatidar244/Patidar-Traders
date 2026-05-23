@@ -140,7 +140,7 @@ export default function CheckoutClient() {
         return;
       }
 
-      // ✅ SET EXPIRY TIMER
+      // SET EXPIRY TIMER
       if (data.expiresAt) {
         setExpiresAt(new Date(data.expiresAt).getTime());
       }

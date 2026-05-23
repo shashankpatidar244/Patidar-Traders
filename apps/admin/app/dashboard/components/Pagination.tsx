@@ -1,12 +1,13 @@
 "use client";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+
+
 
 interface PaginationProps {
   title?: string;
   page: number;
   totalPages: number;
   currentLimit: number;
-  setPage: (page: number) => void;
-  updateLimit: (limit: number) => void;
 }
 
 export default function Pagination({
@@ -14,10 +15,41 @@ export default function Pagination({
   page,
   totalPages,
   currentLimit,
-  setPage,
-  updateLimit,
 }: PaginationProps) {
+  const router = useRouter();
+
+  const pathname = usePathname();
+
+  const searchParams = useSearchParams();
+  
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  // UPDATE URL PARAMS
+  function updateQuery(
+    key: string,
+    value: string | number
+  ) {
+    const params = new URLSearchParams(
+      searchParams.toString()
+    );
+
+    params.set(key, String(value));
+
+    // RESET PAGE WHEN LIMIT CHANGES
+    if (key === "limit") {
+      params.set("page", "1");
+    }
+
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function setPage(newPage: number) {
+    updateQuery("page", newPage);
+  }
+
+  function updateLimit(newLimit: number) {
+    updateQuery("limit", newLimit);
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
@@ -123,6 +155,7 @@ export default function Pagination({
       focus:border-black focus:ring-2 focus:ring-black/10
     "
           >
+            <option value={2}>2</option>
             <option value={10}>10</option>
             <option value={20}>20</option>
             <option value={50}>50</option>

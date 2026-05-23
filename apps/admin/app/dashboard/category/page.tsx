@@ -1,52 +1,58 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import CategoryTable from "./components/CategoryTable"
-import CategoryForm from "./components/CategoryForm"
-import DeleteModal from "./components/DeleteModal"
+import { useEffect, useState } from "react";
+import CategoryTable from "./components/CategoryTable";
+import CategoryForm from "./components/CategoryForm";
+import DeleteModal from "./components/DeleteModal";
+import Pagination from "../components/Pagination";
+import { useSearchParams } from "next/navigation";
 
 export interface Category {
-  id: number
-  name: string
-  createdAt: string
-  updatedAt: string
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
   _count: {
-    products: number
-  }
+    products: number;
+  };
 }
 
 interface Meta {
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export default function CategoryPage() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [search, setSearch] = useState("")
-  const [sort, setSort] = useState("newest")
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("newest");
 
-  const [openForm, setOpenForm] = useState(false)
-  const [editData, setEditData] = useState<Category | null>(null)
+  const [openForm, setOpenForm] = useState(false);
+  const [editData, setEditData] = useState<Category | null>(null);
 
-  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [page, setPage] = useState(1)
-  const [meta, setMeta] = useState<Meta | null>(null)
+  const searchParams = useSearchParams();
+
+  const page = Number(searchParams.get("page") || 1);
+
+  const currentLimit = Number(searchParams.get("limit") || 10);
+  const [meta, setMeta] = useState<Meta | null>(null);
 
   const fetchData = async () => {
     const res = await fetch(
-      `/api/category?search=${search}&sort=${sort}&page=${page}&limit=10`
-    )
-    const result = await res.json()
-    setCategories(result.data)
-    setMeta(result.meta)
-  }
+      `/api/category?search=${search}&sort=${sort}&page=${page}&limit=${currentLimit} `
+    );
+    const result = await res.json();
+    setCategories(result.data);
+    setMeta(result.meta);
+  };
 
   useEffect(() => {
-    fetchData()
-  }, [search, sort, page])
+    fetchData();
+  }, [search, sort, page, currentLimit]);
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -61,8 +67,8 @@ export default function CategoryPage() {
 
         <button
           onClick={() => {
-            setEditData(null)
-            setOpenForm(true)
+            setEditData(null);
+            setOpenForm(true);
           }}
           className="bg-black text-white px-4 py-2 rounded-lg hover:opacity-90"
         >
@@ -78,8 +84,7 @@ export default function CategoryPage() {
             className="border px-3 py-2 rounded-lg w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-black"
             value={search}
             onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
+              setSearch(e.target.value);
             }}
           />
 
@@ -87,8 +92,7 @@ export default function CategoryPage() {
             className="border px-3 py-2 rounded-lg focus:outline-none"
             value={sort}
             onChange={(e) => {
-              setSort(e.target.value)
-              setPage(1)
+              setSort(e.target.value);
             }}
           >
             <option value="newest">Newest</option>
@@ -108,8 +112,8 @@ export default function CategoryPage() {
         <CategoryTable
           data={categories}
           onEdit={(c: Category) => {
-            setEditData(c)
-            setOpenForm(true)
+            setEditData(c);
+            setOpenForm(true);
           }}
           onDelete={(id: number) => setDeleteId(id)}
         />
@@ -133,31 +137,12 @@ export default function CategoryPage() {
       )}
 
       {/* PAGINATION */}
-      <div className="bg-white p-4 rounded-xl shadow flex justify-between items-center">
-        <button
-          disabled={page === 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100"
-        >
-          Prev
-        </button>
-
-        <span className="text-sm font-medium">
-          Page {meta?.page ?? 1} of {meta?.totalPages ?? 1}
-        </span>
-
-        <button
-          disabled={!meta || page >= meta.totalPages}
-          onClick={() =>
-            setPage((p) =>
-              meta ? Math.min(meta.totalPages, p + 1) : p
-            )
-          }
-          className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100"
-        >
-          Next
-        </button>
-      </div>
+      <Pagination
+        title="Categories"
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        currentLimit={currentLimit}
+      />
     </div>
-  )
+  );
 }

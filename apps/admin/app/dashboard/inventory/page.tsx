@@ -13,15 +13,8 @@ import Pagination from "../components/Pagination";
 export default function InventoryPage() {
   const [filters, setFilters] = useState({ search: "", status: "" });
 
-  const {
-    data,
-    page,
-    setPage,
-    totalPages,
-    currentLimit,
-    updateLimit,
-    refresh,
-  } = useInventory(filters);
+  const { data, page, totalPages, currentLimit, refresh } =
+    useInventory(filters);
 
   const [selected, setSelected] = useState<number[]>([]);
 
@@ -72,8 +65,6 @@ export default function InventoryPage() {
         page={page}
         totalPages={totalPages}
         currentLimit={currentLimit}
-        setPage={setPage}
-        updateLimit={updateLimit}
       />
     </div>
   );

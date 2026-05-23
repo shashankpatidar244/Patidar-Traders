@@ -1,7 +1,7 @@
 import { prisma } from "@repo/database"
 import { NextResponse } from "next/server"
 
-// ✅ GET PRODUCTS
+// GET PRODUCTS
 
 export async function GET(req: Request) {
   try {
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const page = Number(searchParams.get("page") || 1)
     const limit = Number(searchParams.get("limit") || 10)
 
-    // ✅ WHERE FILTER
+    // WHERE FILTER
     const where: any = {}
 
     if (search) {
@@ -33,14 +33,16 @@ export async function GET(req: Request) {
       where.categoryId = Number(categoryId)
     }
 
-    // ✅ SORTING
-    let orderBy: any = { createdAt: "desc" }
+    //  SORTING
+    let orderBy: any = {
+      name: "asc",
+    }
 
     if (sort === "newest") {
       orderBy = { createdAt: "desc" }
     }
 
-    // ✅ FETCH
+    // FETCH
     let products = await prisma.product.findMany({
       where,
       include: {
@@ -54,7 +56,7 @@ export async function GET(req: Request) {
       take: limit,
     })
 
-    // ✅ SORT BY SELLING PRICE (manual)
+    // SORT BY SELLING PRICE (manual)
     if (sort === "price_low") {
       products = products.sort(
         (a, b) =>
@@ -90,7 +92,7 @@ export async function GET(req: Request) {
   }
 }
 
-// ✅ CREATE PRODUCT
+// CREATE PRODUCT
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -157,8 +159,8 @@ export async function POST(req: Request) {
             if (["PCS"].includes(v.unit)) variantName = "Unit";
         
             return {
-              name: variantName, // ✅ NEW LOGIC
-              value: `${v.value} ${v.unit}`, // ✅ FULL VALUE STRING
+              name: variantName, 
+              value: `${v.value} ${v.unit}`,
         
               unit: v.unit,
         

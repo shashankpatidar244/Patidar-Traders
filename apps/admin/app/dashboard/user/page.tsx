@@ -1,16 +1,30 @@
 import UserTable from "./components/UserTable"
 import UserFilters from "./components/UserFilters"
-import Pagination from "./components/Pagination"
+import Pagination from "../components/Pagination"
 import ImportExport from "./components/ImportExport"
 
-export default async function Page({ searchParams }: any) {
+export default async function Page({ searchParams }: {
+  searchParams: Promise<{
+    page?: string;
+    limit?: string;
+    search?: string;
+    role?: string;
+    status?: string;
+  }>;
+}) {
   // ================= SAFE PARAMS =================
-  const safeParams: Record<string, string> = {}
+  const params = await searchParams;
+  const page = Number(params.page || 1);
+  const limit = Number(params.limit || 10);
+  const safeParams: Record<string, string> ={};
 
-  for (const key in searchParams || {}) {
-    const value = searchParams[key]
-    if (value !== undefined && value !== null) {
-      safeParams[key] = String(value)
+  for (const key in params || {}) {
+    const value = params[key as keyof typeof params];
+    if (
+      value !== undefined &&
+      value !== null
+    ) {
+      safeParams[key] = String(value);
     }
   }
 
@@ -41,6 +55,10 @@ export default async function Page({ searchParams }: any) {
 
   const users = data.users || []
 
+  // PAGINATION DATA
+  const totalPages =
+    data.pagination?.totalPages;
+
   return (
     <div className="p-6 space-y-6">
 
@@ -65,7 +83,12 @@ export default async function Page({ searchParams }: any) {
       <UserTable users={users} />
 
       {/* PAGINATION */}
-      <Pagination total={data.total} />
+      <Pagination
+        title="Users"
+        page={page}
+        totalPages={totalPages}
+        currentLimit={limit}
+      />
     </div>
   )
 }

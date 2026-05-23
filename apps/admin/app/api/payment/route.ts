@@ -35,8 +35,8 @@ export async function GET(req: Request) {
       ...(method && { paymentMethod: method }),
     }
 
-    // ✅ Transaction for performance
-    const [data, total] = await Promise.all([
+    // Transaction for performance
+    const [payments, total] = await Promise.all([
       prisma.order.findMany({
         where,
         include: {
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     ])
 
     return NextResponse.json({
-      data,
+      data: payments,
       meta: {
         total,
         page,

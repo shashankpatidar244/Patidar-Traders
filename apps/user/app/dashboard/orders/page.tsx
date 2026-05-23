@@ -23,7 +23,7 @@ export default function OrdersPage() {
       const res = await fetch("/api/orders/me")
       const data = await res.json()
   
-      // ✅ support both formats
+      // support both formats
       if (Array.isArray(data)) {
         setOrders(data)
       } else if (Array.isArray(data.orders)) {

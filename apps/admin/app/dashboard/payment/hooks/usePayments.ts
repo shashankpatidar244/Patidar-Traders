@@ -2,19 +2,36 @@
 
 import { useEffect, useState } from "react"
 
-export function usePayments(query: string, page: number) {
+export function usePayments(query: string, page: number, limit: number) {
   const [data, setData] = useState<any[]>([])
-  const [meta, setMeta] = useState<any>({})
+  const [meta, setMeta] = useState<any>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  })
   const [loading, setLoading] = useState(true)
 
   const fetchPayments = async () => {
     try {
-      const res = await fetch(`/api/payment?${query}&page=${page}&limit=10`)
+      setLoading(true)
+
+      const params = new URLSearchParams({
+        query,
+        page: String(page),
+        limit: String(limit),
+      })
+      const res = await fetch(`/api/payment?${params.toString()}`)
       const json = await res.json()
       setData(json.data)
-      setMeta(json.meta)
+      setMeta(
+        json.meta || {  total: 0,page: 1,limit,totalPages: 1,}
+      )
     } catch (err) {
-      console.error(err)
+      console.error(
+        "PAYMENTS FETCH ERROR:",
+        err
+      )
     } finally {
       setLoading(false)
     }
@@ -23,13 +40,18 @@ export function usePayments(query: string, page: number) {
   useEffect(() => {
     fetchPayments()
 
-    // 🔥 AUTO REFRESH EVERY 5s
+    // AUTO REFRESH EVERY 5s
     const interval = setInterval(() => {
       fetchPayments()
-    }, 5000)
+    }, 60000)
 
     return () => clearInterval(interval)
-  }, [query, page])
+  },  [query, page, limit])
 
-  return { data, meta, loading, refetch: fetchPayments }
+  return {
+    data,
+    meta,
+    loading,
+    refetch: fetchPayments,
+  }
 }

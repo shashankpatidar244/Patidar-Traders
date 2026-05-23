@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     // CREATE ORDER (TRANSACTION)
     // ======================
     const order = await prisma.$transaction(async (tx) => {
-      // 🔒 STOCK CHECK
+      // STOCK CHECK
       for (const item of cartItems) {
         const variant = await tx.productVariant.findUnique({
           where: { id: item.variantId! },
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // 🧾 CREATE ORDER
+      // CREATE ORDER
       const newOrder = await tx.order.create({
         data: {
           userId: user.id,
@@ -177,7 +177,7 @@ export async function POST(req: Request) {
           },
         }),
 
-        // ✅ DELETE ONLY SELECTED ITEMS
+        // DELETE ONLY SELECTED ITEMS
         prisma.cartItem.deleteMany({
           where: {
             userId: user.id,

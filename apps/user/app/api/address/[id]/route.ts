@@ -9,7 +9,7 @@ export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params  // 🔥 FIX HERE
+  const { id } = await context.params  // FIX HERE
 
   const user = await getUserFromRequest()
   if (!user) {
@@ -40,7 +40,7 @@ export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params  // 🔥 FIX HERE
+  const { id } = await context.params  //FIX HERE
 
   const user = await getUserFromRequest()
   if (!user) {

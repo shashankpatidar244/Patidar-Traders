@@ -29,7 +29,14 @@ export async function GET(req: NextRequest) {
       include: {
         user: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        {
+          createdAt: "desc",
+        },
+        {
+          id: "desc",
+        },
+      ],
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -40,6 +47,7 @@ export async function GET(req: NextRequest) {
     orders,
     total,
     page,
+    limit,
     pages: Math.ceil(total / limit),
   })
 }

@@ -27,16 +27,15 @@ export async function GET(req: Request) {
     if (status === "ACTIVE") where.AND.push({ isBlocked: false })
     if (status === "BLOCKED") where.AND.push({ isBlocked: true })
 
-    // ================= QUERY =================
-    const users = await prisma.user.findMany({
+    // ================= FETCH =================
+
+    const [users, total]  = await Promise.all([prisma.user.findMany({
       where,
       skip: (page - 1) * limit,
       take: limit,
-
-      // ✅ ALWAYS SORT A → Z
       orderBy: [
-        { username: "asc" }, // main sort
-        { id: "asc" },       // fallback (if username null)
+        { username: "asc" }, 
+        { id: "asc" },       
       ],
 
       select: {
@@ -55,12 +54,16 @@ export async function GET(req: Request) {
           select: { total: true },
         },
       },
-    })
+    }),
+    prisma.user.count({
+      where,
+    }),
+  ]);
 
     // ================= TRANSFORM =================
     const formattedUsers = users.map((u) => {
       const totalSpend = u.orders.reduce(
-        (sum, o) => sum + (o.total || 0),
+        (sum, o) => sum + Number(o.total || 0),
         0
       )
 
@@ -77,9 +80,6 @@ export async function GET(req: Request) {
       }
     })
 
-    // ================= TOTAL =================
-    const total = await prisma.user.count({ where })
-
     return NextResponse.json({
       users: formattedUsers,
       pagination: {
@@ -90,7 +90,10 @@ export async function GET(req: Request) {
       },
     })
   } catch (err) {
-    console.error(err)
+    console.error(
+      "GET USERS ERROR:",
+      err
+      );
 
     return NextResponse.json(
       { error: "Internal Server Error" },
