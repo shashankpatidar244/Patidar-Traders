@@ -3,7 +3,7 @@ import { logAction } from "../../../../lib/logger"
 
 export const revalidate = 60
 
-// ✅ GET PRODUCTS
+// GET PRODUCTS
 export async function GET() {
   const products = await prisma.product.findMany({
     select: {
@@ -38,7 +38,7 @@ export async function GET() {
   return Response.json(products)
 }
 
-// ✅ CREATE PRODUCT
+// CREATE PRODUCT
 export async function POST(req: Request) {
   const body = await req.json()
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
             value: v.value,
             unit: v.unit,
 
-            // ✅ UPDATED PRICE STRUCTURE
+            // UPDATED PRICE STRUCTURE
             mrp: Number(v.mrp),
             sellingPrice: Number(v.sellingPrice),
 
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     },
   })
 
-  // ✅ Log product creation
+  // Log product creation
   await logAction("CREATE", "PRODUCT", product.id)
 
   return Response.json(product)

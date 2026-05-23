@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "../../auth/options"
 
 export async function GET() {
-  // ✅ no req/res in App Router
+  // no req/res in App Router
   const session = await getServerSession(authOptions)
 
   if (!session?.user)

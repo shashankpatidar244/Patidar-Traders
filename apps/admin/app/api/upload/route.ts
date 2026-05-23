@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     const formData = await req.formData()
     const file = formData.get("file") as File | null
 
-    // ❌ No file
+    // No file
     if (!file) {
       return NextResponse.json(
         { success: false, message: "No file uploaded" },
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // ❌ Validate file type (IMPORTANT)
+    // Validate file type (IMPORTANT)
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
         { success: false, message: "Only images are allowed" },
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // ❌ Validate size (max 5MB)
+    // Validate size (max 5MB)
     const MAX_SIZE = 5 * 1024 * 1024
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
@@ -31,11 +31,11 @@ export async function POST(req: Request) {
       )
     }
 
-    // ✅ Convert file → buffer
+    // Convert file → buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // ✅ Upload to Cloudinary
+    // Upload to Cloudinary
     const uploadRes: any = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       stream.end(buffer)
     })
 
-    // ✅ Success response
+    // Success response
     return NextResponse.json({
       success: true,
       url: uploadRes.secure_url,
