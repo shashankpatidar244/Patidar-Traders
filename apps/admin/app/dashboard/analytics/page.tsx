@@ -19,7 +19,7 @@ export default function AnalyticsPage() {
     "all" | "revenue" | "orders" | "users" | "conversion"
   >("all");
 
-  // 🔥 ADVANCED FILTER STATE
+  // ADVANCED FILTER STATE
   const [filters, setFilters] = useState<{
     date?: string;
     category?: string;
@@ -47,9 +47,6 @@ export default function AnalyticsPage() {
     return true;
   });
 
-  // =============================
-  // UI
-  // =============================
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
 

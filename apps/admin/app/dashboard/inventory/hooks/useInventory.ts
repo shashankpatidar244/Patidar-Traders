@@ -1,53 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { useSearchParams } from "next/navigation";
 
-export function useInventory(filters: any) {
+export function useInventory() {
   const searchParams = useSearchParams();
 
-  // GET FROM URL
   const page = Number(searchParams.get("page") || 1);
-
   const currentLimit = Number(searchParams.get("limit") || 10);
 
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "";
+  const sort = searchParams.get("sort") || "name_asc";
+
   const [data, setData] = useState([]);
-
   const [totalPages, setTotalPages] = useState(1);
-
-  const [totalVariants, setTotalVariants] = useState(0);
-
   const [totalProducts, setTotalProducts] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchData();
-    }, 400);
+    const timeout = setTimeout(() => {
+      fetchInventory();
+    }, 300);
 
-    return () => clearTimeout(delay);
-  }, [filters, page, currentLimit]);
+    return () => clearTimeout(timeout);
+  }, [page, currentLimit, search, status, sort]);
 
-  async function fetchData() {
-    const params = new URLSearchParams({
-      ...filters,
+  async function fetchInventory() {
+    try {
+      setLoading(true);
 
-      page: String(page),
+      const params = new URLSearchParams();
 
-      limit: String(currentLimit),
-    });
+      params.set("page", String(page));
+      params.set("limit", String(currentLimit));
 
-    const res = await fetch(`/api/inventory?${params}`);
+      if (search) params.set("search", search);
+      if (status) params.set("status", status);
+      if (sort) params.set("sort", sort);
 
-    const json = await res.json();
+      const res = await fetch(
+        `/api/inventory?${params.toString()}`
+      );
 
-    setData(json.data || []);
+      const json = await res.json();
 
-    setTotalPages(json.pages || 1);
-
-    setTotalVariants(json.totalVariants || 0);
-
-    setTotalProducts(json.totalProducts || 0);
+      setData(json.data || []);
+      setTotalPages(json.totalPages || 1);
+      setTotalProducts(json.totalProducts || 0);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return {
@@ -55,8 +60,8 @@ export function useInventory(filters: any) {
     page,
     totalPages,
     currentLimit,
-    totalVariants,
     totalProducts,
-    refresh: fetchData,
+    loading,
+    refresh: fetchInventory,
   };
 }

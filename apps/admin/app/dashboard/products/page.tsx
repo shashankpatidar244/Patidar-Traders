@@ -1,17 +1,85 @@
 import { prisma } from "@repo/database";
 import ProductTable from "./components/ProductTable";
-import ProductFilters from "./components/ProductFilters";
 import Link from "next/link";
 import Pagination from "../components/Pagination";
+import SearchFilterBar, {
+  FilterField,
+} from "../components/SearchFilterBar";
+
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: any;
-}) {
+  searchParams: Promise<{
+    search?: string;
+    category?: string;
+    status?: string;
+    sort?: string;
+    page?: string;
+    limit?: string;
+  }>;
+}){
   const params = await searchParams;
 
-  const { search, category, status, sort, page = 1, limit = 10 } = params;
+  const search = params.search || "";
+  const category = params.category || "";
+  const status = params.status || "";
+  const sort = params.sort || "newest";
+
+  const page = Number(params.page || 1);
+  const limit = Number(params.limit || 10);
+
+  const categories = await prisma.category.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  const fields: FilterField[] = [
+    {
+      key: "category",
+      label: "Category",
+      options: categories.map((cat) => ({
+        label: cat.name,
+        value: String(cat.id),
+      })),
+    },
+
+    {
+      key: "status",
+      label: "Status",
+      options: [
+        {
+          label: "Active",
+          value: "active",
+        },
+        {
+          label: "Inactive",
+          value: "inactive",
+        },
+      ],
+    },
+
+    {
+      key: "sort",
+      label: "Sort",
+      isSortEngine: true,
+      options: [
+        {
+          label: "Newest",
+          value: "newest",
+        },
+        {
+          label: "Price Low → High",
+          value: "price_low",
+        },
+        {
+          label: "Price High → Low",
+          value: "price_high",
+        },
+      ],
+    },
+  ];
 
   // WHERE FILTER
   const where: any = {};
@@ -31,24 +99,31 @@ export default async function ProductsPage({
     where.isActive = status === "active";
   }
 
-  // SORT (DB-safe)
-  let orderBy: any = { createdAt: "desc" };
+  // SORT
+  let orderBy: any = {
+    createdAt: "desc",
+  };
 
   if (sort === "newest") {
-    orderBy = { createdAt: "desc" };
+    orderBy = {
+      createdAt: "desc",
+    };
   }
 
   // FETCH
   let products = await prisma.product.findMany({
     where,
+
     include: {
       images: true,
       variants: true,
       category: true,
+      brand: true,
     },
     orderBy,
-    skip: (Number(page) - 1) * Number(limit),
-    take: Number(limit),
+
+    skip: (page - 1) * limit,
+    take: limit,
   });
 
   // FIX: SORT BY SELLING PRICE
@@ -88,10 +163,14 @@ export default async function ProductsPage({
       </div>
 
       {/* FILTERS */}
-      <ProductFilters />
+      <SearchFilterBar
+        fields={fields}
+        globalSearchKey="search"
+        globalSearchPlaceholder="Search products..."
+      />
 
       {/* TABLE */}
-      <ProductTable />
+      <ProductTable/>
 
       {/* PAGINATION */}
       <Pagination

@@ -5,15 +5,19 @@ import { NextResponse } from "next/server"
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url)
+    const { searchParams } = new URL(req.url);
 
-    const search = searchParams.get("search") || ""
-    const status = searchParams.get("status")
-    const categoryId = searchParams.get("categoryId")
-    const sort = searchParams.get("sort")
+    const search = searchParams.get("search") || "";
 
-    const page = Number(searchParams.get("page") || 1)
-    const limit = Number(searchParams.get("limit") || 10)
+    const status = searchParams.get("status") || "";
+
+    const category = searchParams.get("category") || "";
+
+    const sort = searchParams.get("sort") || "";
+
+    const page = Number(searchParams.get("page") || 1);
+
+    const limit = Number(searchParams.get("limit") || 10);
 
     // WHERE FILTER
     const where: any = {}
@@ -29,18 +33,41 @@ export async function GET(req: Request) {
       where.isActive = status === "active"
     }
 
-    if (categoryId) {
-      where.categoryId = Number(categoryId)
+    if (category) {
+      where.categoryId = Number(category)
     }
 
     //  SORTING
-    let orderBy: any = {
-      name: "asc",
-    }
+    // SORTING
+let orderBy: any = {
+  name: "asc", // DEFAULT A-Z
+};
 
-    if (sort === "newest") {
-      orderBy = { createdAt: "desc" }
-    }
+switch (sort) {
+  case "newest":
+    orderBy = {
+      createdAt: "desc",
+    };
+    break;
+
+  case "oldest":
+    orderBy = {
+      createdAt: "asc",
+    };
+    break;
+
+  case "name_desc":
+    orderBy = {
+      name: "desc",
+    };
+    break;
+
+  case "name_asc":
+  default:
+    orderBy = {
+      name: "asc",
+    };
+}
 
     // FETCH
     let products = await prisma.product.findMany({
@@ -56,32 +83,47 @@ export async function GET(req: Request) {
       take: limit,
     })
 
-    // SORT BY SELLING PRICE (manual)
+    // SORT BY SELLING PRICE
     if (sort === "price_low") {
-      products = products.sort(
-        (a, b) =>
-          Math.min(
-            ...a.variants.map(v => v.sellingPrice ?? 0)
-          ) -
-          Math.min(
-            ...b.variants.map(v => v.sellingPrice ?? 0)
-          )
-      )
+      products = products.sort((a: any, b: any) => {
+        const aPrice = Math.min(
+          ...a.variants.map((v: any) => v.sellingPrice ?? 0)
+        );
+
+        const bPrice = Math.min(
+          ...b.variants.map((v: any) => v.sellingPrice ?? 0)
+        );
+
+        return aPrice - bPrice;
+      });
     }
 
     if (sort === "price_high") {
-      products = products.sort(
-        (a, b) =>
-          Math.max(
-            ...b.variants.map(v => v.sellingPrice ?? 0)
-          ) -
-          Math.max(
-            ...a.variants.map(v => v.sellingPrice ?? 0)
-          )
-      )
+      products = products.sort((a: any, b: any) => {
+        const aPrice = Math.max(
+          ...a.variants.map((v: any) => v.sellingPrice ?? 0)
+        );
+
+        const bPrice = Math.max(
+          ...b.variants.map((v: any) => v.sellingPrice ?? 0)
+        );
+
+        return bPrice - aPrice;
+      });
     }
 
-    return NextResponse.json(products)
+
+    const total = await prisma.product.count({
+      where,
+    });
+
+    return NextResponse.json({
+      data: products,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error("GET PRODUCTS ERROR:", error)
 

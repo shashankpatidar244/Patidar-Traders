@@ -3,44 +3,158 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import OrderTable from "./components/OrderTable";
-import OrderFilters from "./components/OrderFilters";
 import Pagination from "../components/Pagination";
 import BulkActions from "./components/BulkActions";
+import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
 
 export default function OrdersPage() {
-  
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page") || 1);
   const currentLimit = Number(searchParams.get("limit") || 10);
+  const search =
+    searchParams.get("search") || "";
+
+  const status =
+    searchParams.get("status") || "";
+
+  const sort =
+    searchParams.get("sort") ||
+    "newest";
+
+   // STATES 
   const [orders, setOrders] = useState<any[]>([]);
   const [pages, setPages] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);
-  const [filters, setFilters] = useState({search: "",status: "",});
   const [loading, setLoading] = useState(false);
 
+  const filterFields: FilterField[] = [
+    {
+      key: "status",
+
+      label: "Status",
+
+      options: [
+        {
+          label: "Pending",
+          value: "PENDING",
+        },
+
+        {
+          label: "Confirmed",
+          value: "CONFIRMED",
+        },
+
+        {
+          label: "Shipped",
+          value: "SHIPPED",
+        },
+
+        {
+          label: "Delivered",
+          value: "DELIVERED",
+        },
+
+        {
+          label: "Cancelled",
+          value: "CANCELLED",
+        },
+      ],
+    },
+
+    {
+      key: "sort",
+
+      label: "Sort",
+
+      isSortEngine: true,
+
+      options: [
+        {
+          label: "Newest First",
+          value: "newest",
+        },
+
+        {
+          label: "Oldest First",
+          value: "oldest",
+        },
+
+        {
+          label: "ID High-Low",
+          value: "id_desc",
+        },
+
+        {
+          label: "ID Low-High",
+          value: "id_asc",
+        },
+      ],
+    },
+  ];
+
+   // LOAD ORDERS
+   useEffect(() => {
+    const timeout = setTimeout(() => {
+      loadOrders();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [
+    page,
+    currentLimit,
+    search,
+    status,
+    sort,
+  ]);
+
   async function loadOrders() {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const query = new URLSearchParams({
-      page: String(page),
-      limit: String(currentLimit),
-      search: filters.search,
-      status: filters.status,
-    });
+      const params =
+        new URLSearchParams();
 
-    const res = await fetch(`/api/orders?${query}`);
-    const data = await res.json();
+      params.set(
+        "page",
+        String(page)
+      );
 
-    setOrders(data.orders);
-    setPages(data.pages);
-    setSelected([]);
+      params.set(
+        "limit",
+        String(currentLimit)
+      );
 
-    setLoading(false);
+      if (search) {
+        params.set("search", search);
+      }
+
+      if (status) {
+        params.set("status", status);
+      }
+
+      if (sort) {
+        params.set("sort", sort);
+      }
+
+      const res = await fetch(
+        `/api/orders?${params.toString()}`
+      );
+
+      const json = await res.json();
+
+      setOrders(json.data || []);
+
+      setPages(
+        json.totalPages || 1
+      );
+
+      setSelected([]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   }
-
-  useEffect(() => {
-    loadOrders();
-  }, [page, currentLimit, filters]);
 
   return (
     <div className="p-6 space-y-6">
@@ -59,9 +173,11 @@ export default function OrdersPage() {
       </div>
 
       {/* FILTER CARD */}
-      <div className="bg-white border rounded-xl p-4 shadow-sm">
-        <OrderFilters setFilters={setFilters} />
-      </div>
+      <SearchFilterBar
+          globalSearchKey="search"
+          globalSearchPlaceholder="Search orders..."
+          fields={filterFields}
+        />
 
       {/* BULK ACTIONS */}
       <BulkActions selected={selected} orders={orders} refresh={loadOrders} />

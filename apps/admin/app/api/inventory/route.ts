@@ -11,7 +11,11 @@ export async function GET(req: Request) {
 
   const search = searchParams.get("search") || "";
 
-  const status = searchParams.get("status");
+  const status = searchParams.get("status") || "";
+
+  const sortRaw = searchParams.get("sort");
+
+  const sort = sortRaw && sortRaw.length > 0 ? sortRaw : "name_asc";
 
   // PRODUCT WHERE
   const where: Prisma.ProductWhereInput = {};
@@ -24,6 +28,56 @@ export async function GET(req: Request) {
     };
   }
 
+  if (status === "IN") {
+    where.variants = {
+      some: {
+        stock: {
+          gte: 10,
+        },
+      },
+    };
+  }
+
+  if (status === "LOW") {
+    where.variants = {
+      some: {
+        stock: {
+          gt: 0,
+          lt: 10,
+        },
+      },
+    };
+  }
+
+  if (status === "OUT") {
+    where.variants = {
+      some: {
+        stock: 0,
+      },
+    };
+  }
+
+  // SORT
+  let orderBy:
+    | Prisma.ProductOrderByWithRelationInput
+    | Prisma.ProductOrderByWithRelationInput[] = {
+    name: "asc",
+  };
+
+  switch (sort) {
+    case "name_desc":
+      orderBy = {
+        name: "desc",
+      };
+      break;
+
+    case "name_asc":
+    default:
+      orderBy = {
+        name: "asc",
+      };
+  }
+
   // FETCH PRODUCTS
   const [data, totalProducts] = await Promise.all([
     prisma.product.findMany({
@@ -33,26 +87,6 @@ export async function GET(req: Request) {
         images: true,
 
         variants: {
-          where:
-            status === "IN"
-              ? {
-                  stock: {
-                    gte: 10,
-                  },
-                }
-              : status === "LOW"
-                ? {
-                    stock: {
-                      gt: 0,
-                      lt: 10,
-                    },
-                  }
-                : status === "OUT"
-                  ? {
-                      stock: 0,
-                    }
-                  : {},
-
           orderBy: [
             {
               value: "asc",
@@ -63,10 +97,7 @@ export async function GET(req: Request) {
           ],
         },
       },
-
-      orderBy: {
-        name: "asc",
-      },
+      orderBy,
 
       skip: (page - 1) * limit,
 
@@ -84,8 +115,8 @@ export async function GET(req: Request) {
   return NextResponse.json({
     data,
     page,
-    pages,
     limit,
+    totalPages: pages,
     totalProducts,
   });
 }

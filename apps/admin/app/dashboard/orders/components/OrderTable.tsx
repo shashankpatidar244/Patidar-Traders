@@ -73,7 +73,7 @@ export default function OrderTable({ orders, selected, setSelected }: any) {
                 {/* CUSTOMER */}
                 <td className="p-4">
                   <div className="font-medium text-gray-800">
-                    {o.shippingFullName}
+                    {o.shippingName}
                   </div>
                 </td>
   
