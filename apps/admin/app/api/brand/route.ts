@@ -66,8 +66,8 @@ export async function GET(req: Request) {
 
     // ================= FETCH =================
 
-    const [categories, total] = await Promise.all([
-      prisma.category.findMany({
+    const [brand, total] = await Promise.all([
+      prisma.brand.findMany({
         where,
 
         orderBy,
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
         },
       }),
 
-      prisma.category.count({
+      prisma.brand.count({
         where,
       }),
     ]);
@@ -93,7 +93,7 @@ export async function GET(req: Request) {
     // ================= RESPONSE =================
 
     return NextResponse.json({
-      data: categories,
+      data: brand,
 
       total,
 
@@ -104,7 +104,7 @@ export async function GET(req: Request) {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error("GET CATEGORY ERROR:", error);
+    console.error("GET BRAND ERROR:", error);
 
     return NextResponse.json(
       {
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
     if (!name) {
       return NextResponse.json(
         {
-          error: "Category name is required",
+          error: "Brand name is required",
         },
         {
           status: 400,
@@ -140,16 +140,16 @@ export async function POST(req: Request) {
 
     // ================= CHECK EXISTING =================
 
-    const existingCategory = await prisma.category.findUnique({
+    const existingBrand = await prisma.brand.findUnique({
       where: {
         name: normalizedName,
       },
     });
 
-    if (existingCategory) {
+    if (existingBrand) {
       return NextResponse.json(
         {
-          error: "Category already exists",
+          error: "Brand already exists",
         },
         {
           status: 400,
@@ -159,7 +159,7 @@ export async function POST(req: Request) {
 
     // ================= CREATE =================
 
-    const category = await prisma.category.create({
+    const brand = await prisma.brand.create({
       data: {
         name: normalizedName,
       },
@@ -173,11 +173,11 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(category, {
+    return NextResponse.json(brand, {
       status: 201,
     });
   } catch (error) {
-    console.error("CREATE CATEGORY ERROR:", error);
+    console.error("CREATE BRAND ERROR:", error);
 
     return NextResponse.json(
       {

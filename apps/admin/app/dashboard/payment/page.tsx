@@ -1,48 +1,172 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePayments } from "./hooks/usePayments";
 import PaymentTable from "./components/PaymentTable";
-import PaymentFilters from "./components/PaymentFilters";
 import PaymentStats from "./components/PaymentStats";
 import PaymentModal from "./components/PaymentModal";
 import Pagination from "../components/Pagination";
 import { TableSkeleton } from "./components/Skeleton";
 import BulkActions from "./components/BulkActions";
+import SearchFilterBar, {
+  FilterField,
+} from "../components/SearchFilterBar";
 
 export default function PaymentPage() {
+
   const searchParams = useSearchParams();
-
   const page = Number(searchParams.get("page") || 1);
-  const currentLimit = Number(searchParams.get("limit") || 10);
-
-  const [query, setQuery] = useState("");
+  const currentLimit = Number( searchParams.get("limit") || 10 );
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "";
+  const method = searchParams.get("method") || "";
+  const sort = searchParams.get("sort") || "newest";
   const [selected, setSelected] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  const { data, meta, loading, refetch } =
-  usePayments(
-    query,
-    page,
-    currentLimit
-  )
+  // FILTER CONFIG
+  const filterFields: FilterField[] = useMemo(
+    () => [
+      {
+        key: "status",
 
-  const handleBulkAction = async (action: string) => {
+        label: "Status",
+
+        options: [
+          {
+            label: "Pending",
+            value: "PENDING",
+          },
+
+          {
+            label: "Paid",
+            value: "PAID",
+          },
+
+          {
+            label: "Failed",
+            value: "FAILED",
+          },
+
+          {
+            label: "Refunded",
+            value: "REFUNDED",
+          },
+        ],
+      },
+
+      {
+        key: "method",
+
+        label: "Method",
+
+        options: [
+          {
+            label: "COD",
+            value: "COD",
+          },
+
+          {
+            label: "UPI",
+            value: "UPI",
+          },
+
+          {
+            label: "CARD",
+            value: "CARD",
+          },
+        ],
+      },
+
+      {
+        key: "sort",
+
+        label: "Sort",
+
+        isSortEngine: true,
+
+        options: [
+          {
+            label: "Newest",
+            value: "newest",
+          },
+
+          {
+            label: "Oldest",
+            value: "oldest",
+          },
+
+          {
+            label: "Highest Amount",
+            value: "amount_desc",
+          },
+
+          {
+            label: "Lowest Amount",
+            value: "amount_asc",
+          },
+        ],
+      },
+    ],
+    []
+  );
+
+  // FETCH DATA
+  const {
+    data,
+    meta,
+    loading,
+    refetch,
+  } = usePayments({
+    search,
+    status,
+    method,
+    sort,
+    page,
+    limit: currentLimit,
+  });
+
+  // BULK ACTION
+  const handleBulkAction = async (
+    action: string
+  ) => {
     await fetch("/api/payment/bulk", {
       method: "POST",
-      body: JSON.stringify({ ids: selectedIds, action }),
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        ids: selectedIds,
+        action,
+      }),
     });
 
     setSelectedIds([]);
+
     refetch();
   };
 
-  const handleAction = async (id: number, action: string) => {
+  // SINGLE ACTION
+  const handleAction = async (
+    id: number,
+    action: string
+  ) => {
     await fetch("/api/payment", {
       method: "POST",
-      body: JSON.stringify({ id, action }),
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        id,
+        action,
+      }),
     });
+
     refetch();
   };
 
@@ -62,10 +186,10 @@ export default function PaymentPage() {
       <PaymentStats data={data} />
 
       {/* Filters */}
-      <PaymentFilters
-        setQuery={(q: string) => {
-          setQuery(q);
-        }}
+      <SearchFilterBar
+        fields={filterFields}
+        globalSearchKey="search"
+        globalSearchPlaceholder="Search by payment ID or Razorpay order ID..."
       />
 
       <BulkActions

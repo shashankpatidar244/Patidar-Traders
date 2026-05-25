@@ -67,7 +67,7 @@ export default function UserTable({
               <th className="p-4">Orders</th>
               <th className="p-4">Spend</th>
               <th className="p-4">Joined</th>
-              <th className="p-4 text-right">Actions</th>
+              <th className="text-center p-4">Actions</th>
             </tr>
           </thead>
 

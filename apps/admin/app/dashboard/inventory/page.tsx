@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import InventoryTable from "./components/InventoryTable";
 import SummaryCards from "./components/SummaryCards";
 import BulkActions from "./components/BulkActions";
-import ImportInventory from "./components/ImportInventory";
 import { useInventory } from "./hooks/useInventory";
 import Pagination from "../components/Pagination";
 import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
@@ -80,11 +79,6 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500">
             Manage stock, bulk updates, and imports
           </p>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="flex items-center gap-3">
-          <ImportInventory refresh={refresh} />
         </div>
       </div>
 

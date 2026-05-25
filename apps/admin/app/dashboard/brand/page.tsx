@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import CategoryTable from "./components/CategoryTable";
-import CategoryForm from "./components/CategoryForm";
+import BrandTable from "./components/BrandTable";
+import BrandForm from "./components/BrandForm";
 import DeleteModal from "./components/DeleteModal";
 import Pagination from "../components/Pagination";
 import SearchFilterBar, {
   FilterField,
 } from "../components/SearchFilterBar";
 
-export interface Category {
+export interface Brand {
   id: number;
   name: string;
   createdAt: string;
@@ -21,14 +21,14 @@ export interface Category {
 }
 
 interface ApiResponse {
-  data: Category[];
+  data: Brand[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
 }
 
-export default function CategoryPage() {
+export default function BrandPage() {
   
   const searchParams = useSearchParams();
 
@@ -40,7 +40,7 @@ export default function CategoryPage() {
 
   const sort = searchParams.get("sort") || "newest";
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +53,7 @@ export default function CategoryPage() {
 
   const [openForm, setOpenForm] = useState(false);
 
-  const [editData, setEditData] = useState<Category | null>(null);
+  const [editData, setEditData] = useState<Brand | null>(null);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -101,7 +101,7 @@ export default function CategoryPage() {
 
   // ================= FETCH =================
 
-  async function fetchCategories() {
+  async function fetchBrands() {
     try {
       setLoading(true);
 
@@ -115,13 +115,13 @@ export default function CategoryPage() {
         sort,
       });
 
-      const res = await fetch(`/api/category?${params.toString()}`, {
+      const res = await fetch(`/api/brand?${params.toString()}`, {
         cache: "no-store",
       });
 
       const result: ApiResponse = await res.json();
 
-      setCategories(result.data || []);
+      setBrands(result.data || []);
 
       setMeta({
         total: result.total || 0,
@@ -130,16 +130,16 @@ export default function CategoryPage() {
         totalPages: result.totalPages || 1,
       });
     } catch (error) {
-      console.error("CATEGORY FETCH ERROR:", error);
+      console.error("BRAND FETCH ERROR:", error);
 
-      setCategories([]);
+      setBrands([]);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchCategories();
+    fetchBrands();
   }, [page, limit, search, sort]);
 
   return (
@@ -147,9 +147,9 @@ export default function CategoryPage() {
       {/* HEADER */}
       <div className="bg-white p-5 rounded-xl shadow flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Category Management</h1>
+          <h1 className="text-2xl font-bold">Brand Management</h1>
           <p className="text-sm text-gray-500">
-            Manage product categories efficiently
+            Manage product brands efficiently
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export default function CategoryPage() {
           }}
           className="bg-black text-white px-4 py-2 rounded-lg hover:opacity-90"
         >
-          + Add Category
+          + Add Brand
         </button>
       </div>
 
@@ -168,13 +168,13 @@ export default function CategoryPage() {
       <SearchFilterBar
         fields={filterFields}
         globalSearchKey="search"
-        globalSearchPlaceholder="Search categories..."
+        globalSearchPlaceholder="Search brands..."
       />
 
       {/* COUNT */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          Total Categories:{" "}
+          Total Brands:{" "}
           <span className="font-semibold text-black">{meta.total}</span>
         </div>
 
@@ -187,10 +187,10 @@ export default function CategoryPage() {
 
       {/* TABLE */}
       <div className="bg-white rounded-xl shadow p-4">
-        <CategoryTable
-          data={categories}
-          onEdit={(category: Category) => {
-            setEditData(category);
+        <BrandTable
+          data={brands}
+          onEdit={(brand: Brand) => {
+            setEditData(brand);
 
             setOpenForm(true);
           }}
@@ -200,7 +200,7 @@ export default function CategoryPage() {
 
       {/* PAGINATION */}
       <Pagination
-        title="category"
+        title="Brand"
         page={meta.page}
         totalPages={meta.totalPages}
         currentLimit={meta.limit}
@@ -208,14 +208,14 @@ export default function CategoryPage() {
 
       {/* FORM MODAL */}
       {openForm && (
-        <CategoryForm
+        <BrandForm
           data={editData}
           onClose={() => {
             setOpenForm(false);
 
             setEditData(null);
           }}
-          refresh={fetchCategories}
+          refresh={fetchBrands}
         />
       )}
 
@@ -224,7 +224,7 @@ export default function CategoryPage() {
         <DeleteModal
           id={deleteId}
           onClose={() => setDeleteId(null)}
-          refresh={fetchCategories}
+          refresh={fetchBrands}
         />
       )}
     </div>

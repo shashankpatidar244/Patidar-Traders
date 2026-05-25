@@ -17,6 +17,7 @@ import {
   Import,
   PanelLeftClose,
   PanelLeftOpen,
+  Shapes,
 } from "lucide-react";
 
 import { ThemeProvider } from "./context/ThemeProvider";
@@ -105,6 +106,7 @@ export default function DashboardLayout({
             {navItem("/dashboard/inventory", "Inventory", Boxes)}
             {navItem("/dashboard/user", "Users", Users)}
             {navItem("/dashboard/category", "Category", Tags)}
+            {navItem("/dashboard/brand", "Brand", Shapes)}
             {navItem("/dashboard/payment", "Payments", CreditCard)}
             {navItem("/dashboard/admin-log", "Admin Logs", FileText)}
             {navItem("/dashboard/analytics", "Analytics", BarChart3)}
@@ -124,7 +126,7 @@ export default function DashboardLayout({
         </aside>
 
         {/* ================= MAIN ================= */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* HEADER */}
           <header className="sticky top-0 z-10 h-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
             {/* SEARCH */}
@@ -154,8 +156,8 @@ export default function DashboardLayout({
           </header>
 
           {/* CONTENT */}
-          <main className="flex-1 overflow-auto p-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm min-h-full transition">
+          <main className="flex-1 overflow-x-auto overflow-y-auto p-3 md:p-6 min-w-0">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 md:p-6 shadow-sm min-h-full transition min-w-0">
               {children}
             </div>
           </main>
