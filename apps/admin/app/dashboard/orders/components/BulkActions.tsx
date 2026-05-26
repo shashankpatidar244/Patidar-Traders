@@ -1,89 +1,109 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
-export default function BulkActions({
-  selected,
-  orders,
-  refresh,
-}: any) {
-  const [loading, setLoading] = useState(false)
+export default function BulkActions({ selected, orders, refresh }: any) {
+  const [loading, setLoading] = useState(false);
 
-  if (selected.length === 0) return null
+  if (selected.length === 0) return null;
 
-  const selectedOrders = orders.filter((o: any) =>
-    selected.includes(o.id)
-  )
+  const selectedOrders = orders.filter((o: any) => selected.includes(o.id));
 
-  const status = selectedOrders[0]?.status
+  const status = selectedOrders[0]?.status;
 
   async function run(action: string) {
-    setLoading(true)
+    try {
+      setLoading(true);
 
-    const res = await fetch("/api/orders/bulk", {
-      method: "PATCH",
-      body: JSON.stringify({
-        orderIds: selected,
-        action,
-      }),
-    })
+      const res = await fetch("/api/orders/bulk", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderIds: selected,
+          action,
+        }),
+      });
 
-    const data = await res.json()
+      const data = await res.json();
 
-    if (!res.ok) alert(data.error)
+      if (!res.ok) {
+        alert(data.error || "Bulk action failed");
+        return;
+      }
 
-    await refresh()
-    setLoading(false)
+      await refresh();
+    } catch (error) {
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const btn =
-    "px-4 py-2 rounded-lg text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+    "px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
-    <div className="flex items-center justify-between bg-white border rounded-xl p-3 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* LEFT */}
+      <div>
+        <p className="text-sm text-gray-500">Selected Orders</p>
 
-      {/* LEFT INFO */}
-      <div className="text-sm text-gray-600">
-        {selected.length} selected | Status:{" "}
-        <span className="font-semibold text-gray-800">
-          {status}
-        </span>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-2xl font-bold text-gray-900">
+            {selected.length}
+          </span>
+
+          <span className="text-sm text-gray-500">orders selected</span>
+        </div>
+
+        <div className="mt-2">
+          <span className="text-xs text-gray-500">Current Status:</span>
+
+          <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+            {status}
+          </span>
+        </div>
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="flex gap-2">
-
+      {/* RIGHT */}
+      <div className="flex flex-wrap gap-2">
+        {/* PENDING → CONFIRMED */}
         {status === "PENDING" && (
           <button
             disabled={loading}
             onClick={() => run("CONFIRM")}
             className={`${btn} bg-blue-600 hover:bg-blue-700`}
           >
-            Confirm (Paid)
+            {loading ? "Processing..." : "Confirm Orders"}
           </button>
         )}
 
-        {status === "PAID" && (
+        {/* CONFIRMED → PACKED */}
+        {status === "CONFIRMED" && (
           <button
             disabled={loading}
-            onClick={() => run("SHIP")}
-            className={`${btn} bg-purple-600 hover:bg-purple-700`}
+            onClick={() => run("PACK")}
+            className={`${btn} bg-indigo-600 hover:bg-indigo-700`}
           >
-            Mark Shipped
+            {loading ? "Processing..." : "Mark Packed"}
           </button>
         )}
 
-        {status === "SHIPPED" && (
+        {/* PACKED → COMPLETED */}
+        {status === "PACKED" && (
           <button
             disabled={loading}
-            onClick={() => run("DELIVER")}
+            onClick={() => run("COMPLETE")}
             className={`${btn} bg-green-600 hover:bg-green-700`}
           >
-            Mark Delivered
+            {loading ? "Processing..." : "Mark Completed"}
           </button>
         )}
 
-        {status !== "DELIVERED" && (
+        {/* CANCEL */}
+        {status !== "COMPLETED" && status !== "CANCELLED" && (
           <button
             disabled={loading}
             onClick={() => run("CANCEL")}
@@ -92,8 +112,7 @@ export default function BulkActions({
             Cancel Orders
           </button>
         )}
-
       </div>
     </div>
-  )
+  );
 }

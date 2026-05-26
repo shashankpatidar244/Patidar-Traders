@@ -1,112 +1,235 @@
 import { prisma } from "@repo/database";
+import {
+  DeliveryStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+  OrderStatus,
+} from "@prisma/client";
 
-import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+  try {
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get("page") || 1);
+    const limit = Number(searchParams.get("limit") || 10);
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "";
+    const paymentMethod = searchParams.get("paymentMethod") || "";
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const deliveryStatus = searchParams.get("deliveryStatus") || "";
+    const sort = searchParams.get("sort") || "newest";
+    // DATE RANGE
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
 
-  const page = Number(searchParams.get("page") || 1);
-  const limit = Number(searchParams.get("limit") || 10);
-  const search = searchParams.get("search") || "";
-  const status = searchParams.get("status") || "";
-  const paymentMethod = searchParams.get("paymentMethod") || "";
-  const sort = searchParams.get("sort") || "newest";
+    // WHERE
+    const where: Prisma.OrderWhereInput = {};
 
-  const where: any = {};
+    if (status) {
+      where.status = status as OrderStatus;
+    }
 
-  if (status) {
-    where.status = status as any;
-  }
-  if (paymentMethod) {
-    where.paymentMethod = paymentMethod as any;
-  }
+    if (paymentMethod) {
+      where.paymentMethod = paymentMethod as PaymentMethod;
+    }
 
-  if (search) {
-    where.OR = [
-      {
-        id: Number(search) || undefined,
-      },
+    if (paymentStatus) {
+      where.paymentStatus = paymentStatus as PaymentStatus;
+    }
 
-      {
-        shippingName: {
-          contains: search,
-          mode: "insensitive",
+    if (deliveryStatus) {
+      where.deliveryStatus = deliveryStatus as DeliveryStatus;
+    }
+
+    // SEARCH
+    if (search) {
+      where.OR = [
+        {
+          id: Number(search) || undefined,
         },
-      },
 
-      {
-        shippingPhone: {
-          contains: search,
+        {
+          shippingName: {
+            contains: search,
+            mode: "insensitive",
+          },
         },
+
+        {
+          shippingPhone: {
+            contains: search,
+          },
+        },
+
+        {
+          user: {
+            username: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        },
+      ];
+    }
+
+    // DATE FILTER
+    if (from || to) {
+      where.createdAt = {};
+
+      if (from) {
+        where.createdAt.gte = new Date(from);
+      }
+
+      if (to) {
+        const endDate = new Date(to);
+        endDate.setHours(23, 59, 59, 999);
+
+        where.createdAt.lte = endDate;
+      }
+    }
+
+    // SORTING
+    let orderBy:
+      | Prisma.OrderOrderByWithRelationInput
+      | Prisma.OrderOrderByWithRelationInput[] = [
+      {
+        createdAt: "desc",
       },
     ];
-  }
 
-  // SORT
-  let orderBy:
-    | Prisma.OrderOrderByWithRelationInput
-    | Prisma.OrderOrderByWithRelationInput[] = [
-    {
-      createdAt: "desc",
-    },
-  ];
+    switch (sort) {
+      case "oldest":
+        orderBy = [
+          {
+            createdAt: "asc",
+          },
+        ];
+        break;
 
-  switch (sort) {
-    case "oldest":
-      orderBy = [
-        {
-          createdAt: "asc",
+      case "highest":
+        orderBy = [
+          {
+            total: "desc",
+          },
+        ];
+        break;
+
+      case "lowest":
+        orderBy = [
+          {
+            total: "asc",
+          },
+        ];
+        break;
+
+      case "id_asc":
+        orderBy = [
+          {
+            id: "asc",
+          },
+        ];
+        break;
+
+      case "id_desc":
+        orderBy = [
+          {
+            id: "desc",
+          },
+        ];
+        break;
+
+      case "newest":
+      default:
+        orderBy = [
+          {
+            createdAt: "desc",
+          },
+          {
+            id: "desc",
+          },
+        ];
+    }
+
+    // FETCH DATA
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              phone: true,
+            },
+          },
+
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+
+              variant: {
+                select: {
+                  id: true,
+                  name: true,
+                  value: true,
+                  unit: true,
+                },
+              },
+            },
+          },
         },
-      ];
-      break;
 
-    case "id_asc":
-      orderBy = [
-        {
-          id: "asc",
-        },
-      ];
-      break;
+        orderBy,
 
-    case "id_desc":
-      orderBy = [
-        {
-          id: "desc",
-        },
-      ];
-      break;
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
 
-    case "newest":
-    default:
-      orderBy = [
-        {
-          createdAt: "desc",
-        },
-        {
-          id: "desc",
-        },
-      ];
-  }
+      prisma.order.count({
+        where,
+      }),
+    ]);
 
-  const [orders, total] = await Promise.all([
-    prisma.order.findMany({
-      where,
-      include: {
-        user: true,
+    // DECIMAL FIX
+    const formattedOrders = orders.map((order) => ({
+      ...order,
+
+      total: Number(order.total),
+
+      items: order.items.map((item) => ({
+        ...item,
+        price: Number(item.price),
+      })),
+    }));
+
+    return NextResponse.json({
+      success: true,
+
+      data: formattedOrders,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error("GET ORDERS ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch orders",
       },
-      orderBy,
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.order.count({ where }),
-  ]);
-
-  return NextResponse.json({
-    data: orders,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  });
+      {
+        status: 500,
+      }
+    );
+  }
 }

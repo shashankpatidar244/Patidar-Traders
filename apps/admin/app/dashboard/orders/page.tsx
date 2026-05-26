@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+
 import OrderTable from "./components/OrderTable";
 import Pagination from "../components/Pagination";
 import BulkActions from "./components/BulkActions";
@@ -9,24 +10,27 @@ import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
 
 export default function OrdersPage() {
   const searchParams = useSearchParams();
+
   const page = Number(searchParams.get("page") || 1);
+
   const currentLimit = Number(searchParams.get("limit") || 10);
-  const search =
-    searchParams.get("search") || "";
 
-  const status =
-    searchParams.get("status") || "";
+  const search = searchParams.get("search") || "";
 
-  const sort =
-    searchParams.get("sort") ||
-    "newest";
+  const status = searchParams.get("status") || "";
 
-   // STATES 
+  const sort = searchParams.get("sort") || "newest";
+
+  // STATES
   const [orders, setOrders] = useState<any[]>([]);
+
   const [pages, setPages] = useState(1);
+
   const [selected, setSelected] = useState<number[]>([]);
+
   const [loading, setLoading] = useState(false);
 
+  // FILTERS
   const filterFields: FilterField[] = [
     {
       key: "status",
@@ -45,13 +49,13 @@ export default function OrdersPage() {
         },
 
         {
-          label: "Shipped",
-          value: "SHIPPED",
+          label: "Packed",
+          value: "PACKED",
         },
 
         {
-          label: "Delivered",
-          value: "DELIVERED",
+          label: "Completed",
+          value: "COMPLETED",
         },
 
         {
@@ -92,37 +96,24 @@ export default function OrdersPage() {
     },
   ];
 
-   // LOAD ORDERS
-   useEffect(() => {
+  // LOAD ORDERS
+  useEffect(() => {
     const timeout = setTimeout(() => {
       loadOrders();
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [
-    page,
-    currentLimit,
-    search,
-    status,
-    sort,
-  ]);
+  }, [page, currentLimit, search, status, sort]);
 
   async function loadOrders() {
     try {
       setLoading(true);
 
-      const params =
-        new URLSearchParams();
+      const params = new URLSearchParams();
 
-      params.set(
-        "page",
-        String(page)
-      );
+      params.set("page", String(page));
 
-      params.set(
-        "limit",
-        String(currentLimit)
-      );
+      params.set("limit", String(currentLimit));
 
       if (search) {
         params.set("search", search);
@@ -136,17 +127,13 @@ export default function OrdersPage() {
         params.set("sort", sort);
       }
 
-      const res = await fetch(
-        `/api/orders?${params.toString()}`
-      );
+      const res = await fetch(`/api/orders?${params.toString()}`);
 
       const json = await res.json();
 
       setOrders(json.data || []);
 
-      setPages(
-        json.totalPages || 1
-      );
+      setPages(json.totalPages || 1);
 
       setSelected([]);
     } catch (error) {
@@ -159,37 +146,44 @@ export default function OrdersPage() {
   return (
     <div className="p-6 space-y-6">
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Orders</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
+
+          <p className="text-sm text-gray-500 mt-1">
             Manage and track all customer orders
           </p>
         </div>
 
-        <div className="text-sm text-gray-500">
-          Total Orders: {orders.length}
+        <div className="bg-white border rounded-xl px-4 py-3 shadow-sm">
+          <p className="text-xs text-gray-500">Current Results</p>
+
+          <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
         </div>
       </div>
 
-      {/* FILTER CARD */}
-      <SearchFilterBar
+      {/* FILTER BAR */}
+      <div className="bg-white border rounded-2xl p-4 shadow-sm">
+        <SearchFilterBar
           globalSearchKey="search"
-          globalSearchPlaceholder="Search orders..."
+          globalSearchPlaceholder="Search by order ID, customer name, phone..."
           fields={filterFields}
         />
+      </div>
 
       {/* BULK ACTIONS */}
       <BulkActions selected={selected} orders={orders} refresh={loadOrders} />
 
-      {/* TABLE CARD */}
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+      {/* TABLE */}
+      <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center text-gray-500">
-            Loading orders...
+          <div className="py-20 text-center">
+            <div className="text-gray-500 text-sm">Loading orders...</div>
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-16 text-center text-gray-400">No orders found</div>
+          <div className="py-20 text-center">
+            <p className="text-gray-400 text-sm">No orders found</p>
+          </div>
         ) : (
           <OrderTable
             orders={orders}
