@@ -16,7 +16,7 @@ export default function AdminLogPage() {
   return (
     <div className="p-6 space-y-6">
 
-      {/* 🔥 Header */}
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">
           Admin Logs
@@ -26,7 +26,7 @@ export default function AdminLogPage() {
         </p>
       </div>
 
-      {/* 📦 Table Container */}
+      {/* Table Container */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
 
         {/* Loading */}
@@ -39,47 +39,47 @@ export default function AdminLogPage() {
             No logs found
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-sm min-w-[700px]">
 
               {/* Header */}
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr className="text-left text-gray-600">
-                  <th className="p-3 font-medium">ID</th>
-                  <th className="p-3 font-medium">Action</th>
-                  <th className="p-3 font-medium">Entity</th>
-                  <th className="p-3 font-medium">Entity ID</th>
-                  <th className="p-3 font-medium">Date</th>
+              <thead className="bg-gray-50 sticky top-0 z-10 border-b">
+                <tr className="text-left text-gray-600 text-xs uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold w-16">ID</th>
+                  <th className="p-3.5 font-semibold">Action</th>
+                  <th className="p-3.5 font-semibold">Entity</th>
+                  <th className="p-3.5 font-semibold">Entity ID</th>
+                  <th className="p-3.5 font-semibold">Date</th>
                 </tr>
               </thead>
 
               {/* Body */}
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {logs.map((log) => (
                   <tr
                     key={log.id}
-                    className="border-t hover:bg-gray-50 transition"
+                    className="hover:bg-gray-50/70 transition"
                   >
-                    <td className="p-3 font-medium text-gray-900">
+                    <td className="p-3.5 font-medium text-gray-900 whitespace-nowrap">
                       #{log.id}
                     </td>
 
                     {/* Action Badge */}
-                    <td className="p-3">
+                    <td className="p-3.5 whitespace-nowrap">
                       <ActionBadge action={log.action} />
                     </td>
 
-                    <td className="p-3 text-gray-700">
+                    <td className="p-3.5 text-gray-700 whitespace-nowrap">
                       {log.entity}
                     </td>
 
-                    <td className="p-3">
-                      <span className="px-2 py-1 text-xs bg-gray-100 rounded">
+                    <td className="p-3.5 whitespace-nowrap">
+                      <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 font-mono rounded">
                         #{log.entityId}
                       </span>
                     </td>
 
-                    <td className="p-3 text-gray-600">
+                    <td className="p-3.5 text-gray-600 whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                   </tr>
@@ -93,7 +93,7 @@ export default function AdminLogPage() {
   )
 }
 
-/* 🔥 Action Badge Component */
+/* Action Badge Component */
 function ActionBadge({ action }: { action: string }) {
   const map: any = {
     MARK_PAID: "bg-green-100 text-green-700",
@@ -106,7 +106,7 @@ function ActionBadge({ action }: { action: string }) {
 
   return (
     <span
-      className={`px-2 py-1 text-xs rounded-full font-medium ${
+      className={`px-2 py-0.5 text-xs rounded-full font-medium inline-block whitespace-nowrap ${
         map[action] || "bg-gray-100 text-gray-600"
       }`}
     >

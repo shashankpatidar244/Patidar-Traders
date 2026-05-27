@@ -63,23 +63,29 @@ export default function InventoryTable({ data, selected, setSelected }: any) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-      {/* PRODUCT LIST */}
-      {rows.map((product: any) => (
-        <ProductRow
-          key={product.id}
-          group={{
-            product,
-            variants: product.variants || [],
-          }}
-          open={open[product.id]}
-          toggle={() => toggle(product.id)}
-          selected={selected}
-          setSelected={setSelected}
-          updateLocalStock={updateLocalStock}
-          onHistory={setHistoryId}
-        />
-      ))}
+    <div className="bg-white rounded-2xl border shadow-sm w-full overflow-hidden">
+      <div className="overflow-x-auto w-full">
+        <div className="min-w-[800px] inline-block w-full align-middle">
+          
+          {/* PRODUCT LIST */}
+          {rows.map((product: any) => (
+            <ProductRow
+              key={product.id}
+              group={{
+                product,
+                variants: product.variants || [],
+              }}
+              open={open[product.id]}
+              toggle={() => toggle(product.id)}
+              selected={selected}
+              setSelected={setSelected}
+              updateLocalStock={updateLocalStock}
+              onHistory={setHistoryId}
+            />
+          ))}
+
+        </div>
+      </div>
 
       {/* HISTORY MODAL */}
       {historyId && (

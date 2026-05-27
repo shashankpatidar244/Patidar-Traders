@@ -1,12 +1,24 @@
 import { prisma } from "@repo/database";
 
-import { DeliveryStatus, OrderStatus, PaymentStatus } from "@prisma/client";
+import {
+  DeliveryStatus,
+  OrderStatus,
+  PaymentStatus,
+} from "@prisma/client";
 
 import { NextResponse } from "next/server";
 
 export async function PATCH(req: Request) {
   try {
-    const { orderId, status } = await req.json();
+    const {
+      orderId,
+      status,
+      deliveryStatus,
+    }: {
+      orderId: number;
+      status?: OrderStatus;
+      deliveryStatus?: DeliveryStatus;
+    } = await req.json();
 
     const validStatuses: OrderStatus[] = [
       "PENDING",
@@ -16,11 +28,21 @@ export async function PATCH(req: Request) {
       "CANCELLED",
     ];
 
-    if (!validStatuses.includes(status)) {
+    const validDeliveryStatuses: DeliveryStatus[] = [
+      "PENDING",
+      "PACKED",
+      "SHIPPED",
+      "OUT_FOR_DELIVERY",
+      "DELIVERED",
+      "FAILED",
+    ];
+
+    // VALIDATE ORDER STATUS
+    if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid status",
+          error: "Invalid order status",
         },
         {
           status: 400,
@@ -28,7 +50,21 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const nextStatus = status as OrderStatus;
+    // VALIDATE DELIVERY STATUS
+    if (
+      deliveryStatus &&
+      !validDeliveryStatuses.includes(deliveryStatus)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid delivery status",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // FIND ORDER
     const order = await prisma.order.findUnique({
@@ -55,7 +91,7 @@ export async function PATCH(req: Request) {
 
     const currentStatus = order.status;
 
-    // STATUS FLOW RULES
+    const nextStatus = status || currentStatus;
 
     if (currentStatus === "COMPLETED") {
       return NextResponse.json(
@@ -81,13 +117,18 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // ORDER STATUS FLOW RULES
     const invalidFlow =
       (currentStatus === "PENDING" &&
         !["CONFIRMED", "CANCELLED"].includes(nextStatus)) ||
+
       (currentStatus === "CONFIRMED" &&
         !["PACKED", "CANCELLED"].includes(nextStatus)) ||
+
       (currentStatus === "PACKED" &&
-        !["COMPLETED", "CANCELLED"].includes(nextStatus));
+        !["PACKED", "COMPLETED", "CANCELLED"].includes(
+          nextStatus
+        ));
 
     if (invalidFlow) {
       return NextResponse.json(
@@ -101,12 +142,31 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // COMPLETED ONLY AFTER DELIVERED
+    if (
+      nextStatus === "COMPLETED" &&
+      order.deliveryStatus !== "DELIVERED"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Order can only be completed after delivery is delivered",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
     // TRANSACTION
-
-    const updatedOrder = await prisma.$transaction(async (tx) => {
+    const updatedOrder = await prisma.$transaction(
+      async (tx) => {
       // CONFIRM ORDER → REDUCE STOCK
-
-      if (nextStatus === "CONFIRMED" && currentStatus === "PENDING") {
+      if (
+        nextStatus === "CONFIRMED" &&
+        currentStatus === "PENDING"
+      ) {
         for (const item of order.items) {
           if (!item.variantId) continue;
 
@@ -118,7 +178,9 @@ export async function PATCH(req: Request) {
 
           // OUT OF STOCK
           if (!variant || variant.stock < item.quantity) {
-            throw new Error(`Out of stock for variant ${item.variantId}`);
+            throw new Error(
+              `Out of stock for variant ${item.variantId}`
+            );
           }
 
           // REDUCE STOCK
@@ -150,8 +212,10 @@ export async function PATCH(req: Request) {
       }
 
       // CANCEL ORDER → RESTORE STOCK
-
-      if (nextStatus === "CANCELLED" && currentStatus !== "PENDING") {
+      if (
+        nextStatus === "CANCELLED" &&
+        currentStatus !== "PENDING"
+      ) {
         for (const item of order.items) {
           if (!item.variantId) continue;
 
@@ -192,27 +256,27 @@ export async function PATCH(req: Request) {
       }
 
       // PAYMENT STATUS LOGIC
-
       let paymentStatus: PaymentStatus | undefined;
 
       if (nextStatus === "CONFIRMED") {
         paymentStatus = "PAID";
       }
 
-      // DELIVERY STATUS LOGIC
+      let finalDeliveryStatus =
+        deliveryStatus || order.deliveryStatus;
 
-      let deliveryStatus: DeliveryStatus | undefined;
-
-      if (nextStatus === "PACKED") {
-        deliveryStatus = "PACKED";
+      if (
+        currentStatus === "CONFIRMED" &&
+        nextStatus === "PACKED"
+      ) {
+        finalDeliveryStatus = "PACKED";
       }
 
       if (nextStatus === "COMPLETED") {
-        deliveryStatus = "DELIVERED";
+        finalDeliveryStatus = "DELIVERED";
       }
 
       // UPDATE ORDER
-
       return await tx.order.update({
         where: {
           id: Number(orderId),
@@ -223,12 +287,19 @@ export async function PATCH(req: Request) {
 
           paymentStatus,
 
-          deliveryStatus,
+          deliveryStatus: finalDeliveryStatus,
 
-          paidAt: nextStatus === "CONFIRMED" ? new Date() : undefined,
+          paidAt:
+            nextStatus === "CONFIRMED"
+              ? new Date()
+              : undefined,
         },
       });
-    });
+    },
+    {
+      timeout: 20000,
+    }
+  );
 
     // SUCCESS
     return NextResponse.json({

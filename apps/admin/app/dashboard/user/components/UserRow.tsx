@@ -50,10 +50,7 @@ export default function UserRow({
       className="hover:bg-gray-50/70 transition border-t cursor-pointer"
     >
       {/* CHECKBOX */}
-      <td
-        className="p-4"
-        onClick={(e) => e.stopPropagation()} // prevent row click
-      >
+      <td className="p-4" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selected}
@@ -63,16 +60,16 @@ export default function UserRow({
       </td>
 
       {/* USER */}
-      <td className="p-4">
+      <td className="p-4 min-w-[180px]">
         <div className="flex items-center gap-3">
           {/* Avatar */}
-          <div className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600">
             {user.username?.[0]?.toUpperCase() || "U"}
           </div>
 
           {/* Info */}
-          <div className="flex flex-col">
-            <span className="font-medium text-gray-800">
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium text-gray-800 truncate">
               {user.username || "No Name"}
             </span>
             <span className="text-xs text-gray-400">ID: #{user.id}</span>
@@ -81,10 +78,10 @@ export default function UserRow({
       </td>
 
       {/* PHONE */}
-      <td className="p-4 text-gray-600">{user.phone}</td>
+      <td className="p-4 text-gray-600 whitespace-nowrap">{user.phone}</td>
 
       {/* ROLE */}
-      <td className="p-4">
+      <td className="p-4 whitespace-nowrap">
         <span
           className={`flex items-center gap-1 w-fit px-2.5 py-1 text-xs font-medium rounded-full ${
             user.role === "ADMIN"
@@ -98,7 +95,7 @@ export default function UserRow({
       </td>
 
       {/* STATUS */}
-      <td className="p-4">
+      <td className="p-4 whitespace-nowrap">
         <span
           className={`px-2.5 py-1 text-xs font-medium rounded-full ${
             user.isBlocked
@@ -111,19 +108,21 @@ export default function UserRow({
       </td>
 
       {/* ORDERS */}
-      <td className="p-4 text-gray-700 font-medium">{user.totalOrders}</td>
+      <td className="p-4 text-gray-700 font-medium whitespace-nowrap">
+        {user.totalOrders}
+      </td>
 
       {/* SPEND */}
       <td
         className="p-4 font-semibold text-gray-900 whitespace-nowrap"
-        title={`₹${user.totalSpend.toLocaleString("en-IN")}`} // full value on hover
+        title={`₹${user.totalSpend.toLocaleString("en-IN")}`}
       >
         {formatCurrency(user.totalSpend)}
       </td>
 
       {/* DATE */}
       <td
-        className="p-2 text-[11px] text-gray-500"
+        className="p-4 text-[11px] text-gray-500 whitespace-nowrap"
         title={date.toLocaleString()}
       >
         <div className="flex flex-col leading-tight">
@@ -135,7 +134,7 @@ export default function UserRow({
             })}
           </span>
 
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[10px] text-gray-400 mt-0.5">
             {date
               .toLocaleTimeString("en-IN", {
                 hour: "2-digit",
@@ -149,8 +148,8 @@ export default function UserRow({
 
       {/* ACTIONS */}
       <td
-        className="p-4 text-right"
-        onClick={(e) => e.stopPropagation()} // prevent navigation
+        className="p-4 text-right whitespace-nowrap"
+        onClick={(e) => e.stopPropagation()}
       >
         <UserActions user={user} />
       </td>

@@ -93,7 +93,7 @@ export default function CategoryTable({ data, onEdit, onDelete }: Props) {
 
                   <button
                     onClick={() =>
-                      router.push(`/dashboard/products?categoryId=${c.id}`)
+                      router.push(`/dashboard/products?category=${c.id}`)
                     }
                     className="hover:bg-blue-100 p-1 rounded"
                   >

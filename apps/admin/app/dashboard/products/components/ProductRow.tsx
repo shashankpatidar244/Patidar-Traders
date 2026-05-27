@@ -77,14 +77,14 @@ export default function ProductRow({
         </td>
 
         {/* CATEGORY */}
-        <td className="px-4 text-gray-600">{p.category?.name || "—"}</td>
+        <td className="px-4 text-center text-gray-600">{p.category?.name || "—"}</td>
 
         {/* BRAND */}
-        <td className="px-4 text-gray-600">{p.brand?.name || "—"}</td>
+        <td className="px-4 text-center text-gray-600">{p.brand?.name || "—"}</td>
 
         {/* PRICE */}
         <td
-          className="px-4 cursor-pointer"
+          className="px-4 text-center cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             setExpandedRow((prev: number | null) =>
@@ -103,17 +103,17 @@ export default function ProductRow({
         </td>
 
         {/* STOCK */}
-        <td className="text-center">
+        <td className="px-4 text-center">
           <StockBadge stock={totalStock} />
         </td>
 
         {/* STATUS */}
-        <td className="text-center">
+        <td className="px-4 text-center">
           <StatusBadge active={p.isActive} />
         </td>
 
         {/* DATE */}
-        <td className="text-center text-xs text-gray-500">
+        <td className="px-4 text-center text-xs text-gray-500">
           {new Date(p.createdAt).toLocaleDateString()}
         </td>
 

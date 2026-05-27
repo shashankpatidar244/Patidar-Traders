@@ -1,24 +1,24 @@
-"use client"
-import { useRouter } from "next/navigation"
+"use client";
+import { useRouter } from "next/navigation";
 
 interface Brand {
-  id: number
-  name: string
-  createdAt: string
-  updatedAt: string
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
   _count: {
-    products: number
-  }
+    products: number;
+  };
 }
 
 interface Props {
-  data: Brand[]
-  onEdit: (c: Brand) => void
-  onDelete: (id: number) => void
+  data: Brand[];
+  onEdit: (c: Brand) => void;
+  onDelete: (id: number) => void;
 }
 
 export default function BrandTable({ data, onEdit, onDelete }: Props) {
-  const router = useRouter()
+  const router = useRouter();
   return (
     <div className="bg-white rounded-xl shadow overflow-x-auto relative z-0">
       <table className="w-full min-w-[700px] text-sm">
@@ -44,15 +44,10 @@ export default function BrandTable({ data, onEdit, onDelete }: Props) {
             </tr>
           ) : (
             data.map((c) => (
-              <tr
-                key={c.id}
-                className="border-t hover:bg-gray-50 transition"
-              >
+              <tr key={c.id} className="border-t hover:bg-gray-50 transition">
                 <td className="p-3">{c.id}</td>
 
-                <td className="p-3 font-medium capitalize">
-                  {c.name}
-                </td>
+                <td className="p-3 font-medium capitalize">{c.name}</td>
 
                 <td className="p-3">
                   <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
@@ -88,12 +83,12 @@ export default function BrandTable({ data, onEdit, onDelete }: Props) {
                     onClick={() => onDelete(c.id)}
                     className="hover:bg-red-100 p-1 rounded"
                   >
-                    🗑️  
+                    🗑️
                   </button>
 
                   <button
                     onClick={() =>
-                      router.push(`/dashboard/products?barndId=${c.id}`)
+                      router.push(`/dashboard/products?brand=${c.id}&page=1`)
                     }
                     className="hover:bg-blue-100 p-1 rounded"
                   >
@@ -106,5 +101,5 @@ export default function BrandTable({ data, onEdit, onDelete }: Props) {
         </tbody>
       </table>
     </div>
-  )
+  );
 }

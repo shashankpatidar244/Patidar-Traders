@@ -1,7 +1,5 @@
 import { prisma } from "@repo/database";
 
-import { DeliveryStatus, OrderStatus, PaymentStatus } from "@prisma/client";
-
 import { NextResponse } from "next/server";
 
 export async function PATCH(req: Request) {
@@ -64,181 +62,253 @@ export async function PATCH(req: Request) {
 
     // TRANSACTION
 
-    await prisma.$transaction(async (tx) => {
-      for (const order of orders) {
-        const status = order.status;
+    await prisma.$transaction(
+      async (tx) => {
+        for (const order of orders) {
+          const status = order.status;
 
-        // PENDING → CONFIRMED
+          // PENDING → CONFIRMED
 
-        if (action === "CONFIRM" && status === "PENDING") {
-          // STOCK CHECK
-          for (const item of order.items) {
-            if (!item.variantId) continue;
+          if (action === "CONFIRM" && status === "PENDING") {
+            // STOCK CHECK
 
-            const variant = await tx.productVariant.findUnique({
-              where: {
-                id: item.variantId,
-              },
-            });
+            await Promise.all(
+              order.items.map(async (item) => {
+                if (!item.variantId) return;
 
-            if (!variant || variant.stock < item.quantity) {
-              throw new Error(`Out of stock for Order #${order.id}`);
-            }
-          }
+                const variantId = item.variantId;
 
-          // REDUCE STOCK
-          for (const item of order.items) {
-            if (!item.variantId) continue;
-
-            const variant = await tx.productVariant.findUnique({
-              where: {
-                id: item.variantId,
-              },
-            });
-
-            if (!variant) continue;
-
-            await tx.productVariant.update({
-              where: {
-                id: item.variantId,
-              },
-
-              data: {
-                stock: {
-                  decrement: item.quantity,
-                },
-              },
-            });
-
-            // INVENTORY LOG
-            await tx.inventoryLog.create({
-              data: {
-                variantId: item.variantId,
-
-                oldStock: variant.stock,
-
-                newStock: variant.stock - item.quantity,
-
-                action: "REDUCE",
-              },
-            });
-          }
-
-          // UPDATE ORDER
-          await tx.order.update({
-            where: {
-              id: order.id,
-            },
-
-            data: {
-              status: "CONFIRMED",
-
-              paymentStatus: "PAID",
-
-              paidAt: new Date(),
-            },
-          });
-        }
-
-        // CONFIRMED → PACKED
-        else if (action === "PACK" && status === "CONFIRMED") {
-          await tx.order.update({
-            where: {
-              id: order.id,
-            },
-
-            data: {
-              status: "PACKED",
-
-              deliveryStatus: "PACKED",
-            },
-          });
-        }
-
-        // PACKED → COMPLETED
-        else if (action === "COMPLETE" && status === "PACKED") {
-          await tx.order.update({
-            where: {
-              id: order.id,
-            },
-
-            data: {
-              status: "COMPLETED",
-
-              deliveryStatus: "DELIVERED",
-            },
-          });
-        }
-
-        // CANCEL ORDER
-        else if (
-          action === "CANCEL" &&
-          status !== "COMPLETED" &&
-          status !== "CANCELLED"
-        ) {
-          // RESTORE STOCK
-          if (status !== "PENDING") {
-            for (const item of order.items) {
-              if (!item.variantId) continue;
-
-              const variant = await tx.productVariant.findUnique({
-                where: {
-                  id: item.variantId,
-                },
-              });
-
-              if (!variant) continue;
-
-              await tx.productVariant.update({
-                where: {
-                  id: item.variantId,
-                },
-
-                data: {
-                  stock: {
-                    increment: item.quantity,
+                const variant = await tx.productVariant.findUnique({
+                  where: {
+                    id: variantId,
                   },
-                },
-              });
+                });
 
-              // INVENTORY LOG
-              await tx.inventoryLog.create({
-                data: {
-                  variantId: item.variantId,
+                if (!variant || variant.stock < item.quantity) {
+                  throw new Error(`Out of stock for Order #${order.id}`);
+                }
+              })
+            );
 
-                  oldStock: variant.stock,
+            // REDUCE STOCK
 
-                  newStock: variant.stock + item.quantity,
+            await Promise.all(
+              order.items.map(async (item) => {
+                if (!item.variantId) return;
 
-                  action: "ADD",
-                },
-              });
-            }
+                const variantId = item.variantId;
+
+                const variant = await tx.productVariant.findUnique({
+                  where: {
+                    id: variantId,
+                  },
+                });
+
+                if (!variant) return;
+
+                await tx.productVariant.update({
+                  where: {
+                    id: variantId,
+                  },
+
+                  data: {
+                    stock: {
+                      decrement: item.quantity,
+                    },
+                  },
+                });
+
+                // INVENTORY LOG
+
+                await tx.inventoryLog.create({
+                  data: {
+                    variantId: variantId,
+
+                    oldStock: variant.stock,
+
+                    newStock: variant.stock - item.quantity,
+
+                    action: "REDUCE",
+                  },
+                });
+              })
+            );
+
+            // UPDATE ORDER
+
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
+
+              data: {
+                status: "CONFIRMED",
+
+                paidAt: new Date(),
+              },
+            });
           }
 
-          // UPDATE ORDER
-          await tx.order.update({
-            where: {
-              id: order.id,
-            },
+          // CONFIRMED → PACKED
+          else if (action === "PACK" && status === "CONFIRMED") {
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
 
-            data: {
-              status: "CANCELLED",
+              data: {
+                status: "PACKED",
 
-              paymentStatus:
-                order.paymentStatus === "PAID"
-                  ? "REFUNDED"
-                  : order.paymentStatus,
-            },
-          });
+                deliveryStatus: "PACKED",
+              },
+            });
+          }
+
+          // PACKED → SHIPPED
+          else if (action === "SHIP" && status === "PACKED") {
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
+
+              data: {
+                deliveryStatus: "SHIPPED",
+              },
+            });
+          }
+
+          // SHIPPED → OUT FOR DELIVERY
+          else if (
+            action === "OUT_FOR_DELIVERY" &&
+            status === "PACKED" &&
+            order.deliveryStatus === "SHIPPED"
+          ) {
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
+
+              data: {
+                deliveryStatus: "OUT_FOR_DELIVERY",
+              },
+            });
+          }
+
+          // OUT FOR DELIVERY → DELIVERED
+          else if (
+            action === "DELIVER" &&
+            status === "PACKED" &&
+            order.deliveryStatus === "OUT_FOR_DELIVERY"
+          ) {
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
+
+              data: {
+                deliveryStatus: "DELIVERED",
+              },
+            });
+          }
+
+          // DELIVERED → COMPLETED
+          else if (
+            action === "COMPLETE" &&
+            status === "PACKED" &&
+            order.deliveryStatus === "DELIVERED"
+          ) {
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
+
+              data: {
+                status: "COMPLETED",
+              },
+            });
+          }
+
+          // CANCEL ORDER
+          else if (
+            action === "CANCEL" &&
+            status !== "COMPLETED" &&
+            status !== "CANCELLED"
+          ) {
+            // RESTORE STOCK
+
+            if (status !== "PENDING") {
+              await Promise.all(
+                order.items.map(async (item) => {
+                  if (!item.variantId) return;
+
+                  const variantId = item.variantId;
+
+                  const variant = await tx.productVariant.findUnique({
+                    where: {
+                      id: variantId,
+                    },
+                  });
+
+                  if (!variant) return;
+
+                  await tx.productVariant.update({
+                    where: {
+                      id: variantId,
+                    },
+
+                    data: {
+                      stock: {
+                        increment: item.quantity,
+                      },
+                    },
+                  });
+
+                  // INVENTORY LOG
+
+                  await tx.inventoryLog.create({
+                    data: {
+                      variantId: variantId,
+
+                      oldStock: variant.stock,
+
+                      newStock: variant.stock + item.quantity,
+
+                      action: "ADD",
+                    },
+                  });
+                })
+              );
+            }
+
+            // UPDATE ORDER
+
+            await tx.order.update({
+              where: {
+                id: order.id,
+              },
+
+              data: {
+                status: "CANCELLED",
+
+                paymentStatus:
+                  order.paymentStatus === "PAID"
+                    ? "REFUNDED"
+                    : order.paymentStatus,
+              },
+            });
+          }
+
+          else {
+            throw new Error(`Invalid transition (${status} → ${action})`);
+          }
         }
+      },
 
-        // INVALID FLOW
-        else {
-          throw new Error(`Invalid transition (${status} → ${action})`);
-        }
+      {
+        timeout: 60000,
+        maxWait: 60000,
       }
-    });
+    );
 
     // SUCCESS
 

@@ -132,58 +132,62 @@ export default function OrderDetailsPage() {
 
                   {/* BADGES */}
                   <div className="flex flex-wrap items-center gap-3">
-                    <div title="Current Order Status">
-                      <OrderStatusBadge status={order.status} />
+                    <div
+                      title={`Order: ${order.status} • Delivery: ${order.deliveryStatus || "N/A"}`}
+                      className="
+      transition-all duration-200
+      hover:scale-[1.02]
+      hover:shadow-sm
+      rounded-2xl
+    "
+                    >
+                      <OrderStatusBadge
+                        orderStatus={order.status}
+                        deliveryStatus={order.deliveryStatus}
+                      />
                     </div>
 
                     <span
                       title="Selected Payment Method"
                       className="
-      px-4 py-2 rounded-xl
-      bg-gray-100 text-gray-700
-      text-sm font-semibold
-      border border-gray-200
-      transition-all duration-200
-      hover:scale-105 hover:shadow-sm
-      cursor-default
-    "
+                                  inline-flex items-center gap-1.5
+                                  px-3 py-1.5
+                                  rounded-xl
+                                  text-xs font-semibold
+                                  whitespace-nowrap
+                                  shadow-sm
+                                  transition-all duration-200
+                                  hover:scale-[1.02]
+                                "
                     >
                       {order.paymentMethod}
                     </span>
 
                     <span
-                      title="Current Payment Status"
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold border
-    transition-all duration-200
-    hover:scale-105 hover:shadow-sm
-    cursor-default
-    ${
-      order.paymentStatus === "PAID"
-        ? "bg-green-50 text-green-700 border-green-200"
-        : order.paymentStatus === "FAILED"
-          ? "bg-red-50 text-red-700 border-red-200"
-          : "bg-yellow-50 text-yellow-700 border-yellow-200"
-    }`}
+                      title={`Payment Status: ${order.paymentStatus}`}
+                      className={`
+                      inline-flex items-center gap-1.5
+                      px-3 py-1.5
+                      rounded-xl
+                      text-xs font-semibold
+                      whitespace-nowrap
+                      shadow-sm
+                      transition-all duration-200
+                      hover:scale-[1.02]
+      
+      ${
+        order.paymentStatus === "PAID"
+          ? "bg-green-50 text-green-700 border-green-200 hover:border-green-300"
+          : order.paymentStatus === "FAILED"
+            ? "bg-red-50 text-red-700 border-red-200 hover:border-red-300"
+            : order.paymentStatus === "REFUNDED"
+              ? "bg-orange-50 text-orange-700 border-orange-200 hover:border-orange-300"
+              : "bg-yellow-50 text-yellow-700 border-yellow-200 hover:border-yellow-300"
+      }
+    `}
                     >
                       {order.paymentStatus}
                     </span>
-
-                    {order.deliveryStatus && (
-                      <span
-                        title="Current Delivery Status"
-                        className="
-        px-4 py-2 rounded-xl
-        bg-purple-50 text-purple-700
-        text-sm font-semibold
-        border border-purple-200
-        transition-all duration-200
-        hover:scale-105 hover:shadow-sm
-        cursor-default
-      "
-                      >
-                        {order.deliveryStatus}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -246,7 +250,10 @@ export default function OrderDetailsPage() {
       </div>
 
       {/* ================= TIMELINE ================= */}
-      <OrderTimeline status={order.status} />
+      <OrderTimeline
+        orderStatus={order.status}
+        deliveryStatus={order.deliveryStatus}
+      />
 
       {/* ================= MAIN GRID ================= */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

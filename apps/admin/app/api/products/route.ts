@@ -12,6 +12,7 @@ export async function GET(req: Request) {
     const status = searchParams.get("status") || "";
 
     const category = searchParams.get("category") || "";
+    const brand = searchParams.get("brand") || "";
 
     const sort = searchParams.get("sort") || "";
 
@@ -37,7 +38,12 @@ export async function GET(req: Request) {
       where.categoryId = Number(category)
     }
 
-    //  SORTING
+    if (brand) {
+      where.brandId = Number(brand)
+    }
+    
+
+    
     // SORTING
 let orderBy: any = {
   name: "asc", // DEFAULT A-Z

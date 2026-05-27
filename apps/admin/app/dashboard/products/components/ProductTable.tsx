@@ -69,12 +69,12 @@ export default function ProductTable() {
                 </th>
 
                 <th className="w-[300px] text-left px-4">Product</th>
-                <th className="w-[160px] text-left px-4">Category</th>
-                <th className="w-[120px] text-left px-4">Brand</th>
-                <th className="w-[160px] text-left px-4">Price</th>
-                <th className="w-[90px] text-center">Stock</th>
-                <th className="w-[120px] text-center">Status</th>
-                <th className="w-[130px] text-center">Created</th>
+                <th className="w-[160px] text-center px-4">Category</th>
+                <th className="w-[120px] text-center px-4">Brand</th>
+                <th className="w-[160px] text-center px-4">Price</th>
+                <th className="w-[90px]  text-center px-4">Stock</th>
+                <th className="w-[120px] text-center px-4">Status</th>
+                <th className="w-[130px] text-center px-4">Created</th>
                 <th className="w-[160px] text-center px-4">Actions</th>
               </tr>
             </thead>

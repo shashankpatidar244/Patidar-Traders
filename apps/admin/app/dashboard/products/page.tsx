@@ -13,6 +13,7 @@ export default async function ProductsPage({
   searchParams: Promise<{
     search?: string;
     category?: string;
+    brand?: string;
     status?: string;
     sort?: string;
     page?: string;
@@ -23,6 +24,7 @@ export default async function ProductsPage({
 
   const search = params.search || "";
   const category = params.category || "";
+  const brand = params.brand || "";
   const status = params.status || "";
   const sort = params.sort || "newest";
 
@@ -35,6 +37,12 @@ export default async function ProductsPage({
     },
   });
 
+  const brands = await prisma.brand.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  });
+
   const fields: FilterField[] = [
     {
       key: "category",
@@ -42,6 +50,15 @@ export default async function ProductsPage({
       options: categories.map((cat) => ({
         label: cat.name,
         value: String(cat.id),
+      })),
+    },
+
+    {
+      key: "brand",
+      label: "Brand",
+      options: brands.map((bran) => ({
+        label: bran.name,
+        value: String(bran.id),
       })),
     },
 
@@ -93,6 +110,10 @@ export default async function ProductsPage({
 
   if (category) {
     where.categoryId = Number(category);
+  }
+
+  if (brand) {
+    where.brandId = Number(brand);
   }
 
   if (status) {

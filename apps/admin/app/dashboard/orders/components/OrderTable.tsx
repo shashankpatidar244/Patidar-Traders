@@ -51,7 +51,7 @@ export default function OrderTable({
 
             <th className="p-4 font-semibold text-gray-600">Date</th>
 
-            <th className="p-4 text-right font-semibold text-gray-600">
+            <th className="pr-8 text-right font-semibold text-gray-600">
               Action
             </th>
           </tr>
@@ -82,7 +82,7 @@ export default function OrderTable({
                 </td>
 
                 {/* ORDER */}
-                <td className="p-4">
+                <td className="p-2">
                   <div className="flex flex-col">
                     <span className="font-semibold text-gray-900">#{o.id}</span>
 
@@ -93,7 +93,7 @@ export default function OrderTable({
                 </td>
 
                 {/* CUSTOMER */}
-                <td className="p-4">
+                <td className="p-2">
                   <div className="flex flex-col">
                     <span className="font-medium text-gray-800">
                       {o.shippingName}
@@ -106,12 +106,12 @@ export default function OrderTable({
                 </td>
 
                 {/* PHONE */}
-                <td className="p-4 text-gray-600 whitespace-nowrap">
+                <td className="p-2 text-gray-600 whitespace-nowrap">
                   {o.shippingPhone}
                 </td>
 
                 {/* PAYMENT */}
-                <td className="p-4">
+                <td className="p-2">
                   <div className="flex flex-col gap-1">
                     <span className="inline-flex w-fit items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                       {o.paymentMethod}
@@ -137,19 +137,24 @@ export default function OrderTable({
                 </td>
 
                 {/* AMOUNT */}
-                <td className="p-4">
+                <td className="p-2">
                   <div className="font-semibold text-gray-900 whitespace-nowrap">
                     ₹{Number(o.total).toLocaleString("en-IN")}
                   </div>
                 </td>
 
                 {/* STATUS */}
-                <td className="p-4">
-                  <OrderStatusBadge status={o.status} />
+                <td className="p-2">
+                  <div className="flex flex-col items-start gap-2">
+                    <OrderStatusBadge orderStatus={o.status} />
+                    {o.deliveryStatus && (
+                      <OrderStatusBadge deliveryStatus={o.deliveryStatus} />
+                    )}
+                  </div>
                 </td>
 
                 {/* DATE */}
-                <td className="p-4 whitespace-nowrap">
+                <td className="p-2 whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className="text-gray-700">
                       {new Date(o.createdAt).toLocaleDateString()}
@@ -162,7 +167,7 @@ export default function OrderTable({
                 </td>
 
                 {/* ACTION */}
-                <td className="p-4 text-right">
+                <td className="p-2 text-right">
                   <Link
                     href={`/dashboard/orders/${o.id}`}
                     className="

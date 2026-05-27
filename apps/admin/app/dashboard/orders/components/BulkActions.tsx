@@ -91,16 +91,48 @@ export default function BulkActions({ selected, orders, refresh }: any) {
           </button>
         )}
 
-        {/* PACKED → COMPLETED */}
+        {/* DELIVERY ACTIONS */}
         {status === "PACKED" && (
-          <button
-            disabled={loading}
-            onClick={() => run("COMPLETE")}
-            className={`${btn} bg-green-600 hover:bg-green-700`}
-          >
-            {loading ? "Processing..." : "Mark Completed"}
-          </button>
+          <>
+            <button
+              disabled={loading}
+              onClick={() => run("SHIP")}
+              className={`${btn} bg-sky-600 hover:bg-sky-700`}
+            >
+              {loading ? "Processing..." : "Mark Shipped"}
+            </button>
+
+            <button
+              disabled={loading}
+              onClick={() => run("OUT_FOR_DELIVERY")}
+              className={`${btn} bg-violet-600 hover:bg-violet-700`}
+            >
+              {loading ? "Processing..." : "Out For Delivery"}
+            </button>
+
+            <button
+              disabled={loading}
+              onClick={() => run("DELIVER")}
+              className={`${btn} bg-emerald-600 hover:bg-emerald-700`}
+            >
+              {loading ? "Processing..." : "Mark Delivered"}
+            </button>
+          </>
         )}
+
+        {/* COMPLETED */}
+        {status === "PACKED" &&
+          selectedOrders.every(
+            (o: any) => o.deliveryStatus === "DELIVERED"
+          ) && (
+            <button
+              disabled={loading}
+              onClick={() => run("COMPLETE")}
+              className={`${btn} bg-green-600 hover:bg-green-700`}
+            >
+              {loading ? "Processing..." : "Complete Orders"}
+            </button>
+          )}
 
         {/* CANCEL */}
         {status !== "COMPLETED" && status !== "CANCELLED" && (
@@ -109,7 +141,7 @@ export default function BulkActions({ selected, orders, refresh }: any) {
             onClick={() => run("CANCEL")}
             className={`${btn} bg-red-600 hover:bg-red-700`}
           >
-            Cancel Orders
+            {loading ? "Processing..." : "Cancel Orders"}
           </button>
         )}
       </div>

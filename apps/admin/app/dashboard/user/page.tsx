@@ -1,7 +1,7 @@
 import UserTable from "./components/UserTable";
 import UserSearchFilters from "./components/UserSearchFilters";
 import Pagination from "../components/Pagination";
-import ImportExport from "./components/ImportExport";
+
 
 interface PageProps {
   searchParams: Promise<{
@@ -76,8 +76,6 @@ export default async function Page({ searchParams }: PageProps) {
           <div className="flex-1">
             <UserSearchFilters />
           </div>
-
-          <ImportExport />
         </div>
       </div>
 

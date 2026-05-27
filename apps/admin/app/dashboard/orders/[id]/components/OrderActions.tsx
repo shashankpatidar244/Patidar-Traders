@@ -13,7 +13,10 @@ import {
 export default function OrderActions({ order, reload }: any) {
   const [loading, setLoading] = useState(false);
 
-  async function updateStatus(status: string) {
+  async function updateStatus(payload: {
+    status?: string;
+    deliveryStatus?: string;
+  }) {
     try {
       setLoading(true);
 
@@ -24,14 +27,15 @@ export default function OrderActions({ order, reload }: any) {
         },
         body: JSON.stringify({
           orderId: order.id,
-          status,
+          status: payload.status,
+          deliveryStatus: payload.deliveryStatus,
         }),
       });
 
-      const data = await res.json();
+      const responseData = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to update order");
+        alert(responseData.error || "Failed to update order");
         return;
       }
 
@@ -80,7 +84,11 @@ export default function OrderActions({ order, reload }: any) {
         {order.status === "PENDING" && (
           <button
             disabled={loading}
-            onClick={() => updateStatus("CONFIRMED")}
+            onClick={() =>
+              updateStatus({
+                status: "CONFIRMED",
+              })
+            }
             className={`
               ${buttonBase}
               bg-blue-600 hover:bg-blue-700
@@ -100,7 +108,12 @@ export default function OrderActions({ order, reload }: any) {
         {order.status === "CONFIRMED" && (
           <button
             disabled={loading}
-            onClick={() => updateStatus("PACKED")}
+            onClick={() =>
+              updateStatus({
+                status: "PACKED",
+                deliveryStatus: "PACKED",
+              })
+            }
             className={`
               ${buttonBase}
               bg-purple-600 hover:bg-purple-700
@@ -117,10 +130,14 @@ export default function OrderActions({ order, reload }: any) {
         )}
 
         {/* PACKED → COMPLETED */}
-        {order.status === "PACKED" && (
+        {order.status === "PACKED" && order.deliveryStatus === "DELIVERED" && (
           <button
             disabled={loading}
-            onClick={() => updateStatus("COMPLETED")}
+            onClick={() =>
+              updateStatus({
+                status: "COMPLETED",
+              })
+            }
             className={`
               ${buttonBase}
               bg-green-600 hover:bg-green-700
@@ -140,7 +157,11 @@ export default function OrderActions({ order, reload }: any) {
         {order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
           <button
             disabled={loading}
-            onClick={() => updateStatus("CANCELLED")}
+            onClick={() =>
+              updateStatus({
+                status: "CANCELLED",
+              })
+            }
             className={`
                 ${buttonBase}
                 bg-red-600 hover:bg-red-700

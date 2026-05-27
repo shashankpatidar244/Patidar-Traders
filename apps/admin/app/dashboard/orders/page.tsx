@@ -17,6 +17,9 @@ export default function OrdersPage() {
 
   const search = searchParams.get("search") || "";
 
+  const paymentStatus = searchParams.get("paymentStatus") || "";
+  const deliveryStatus = searchParams.get("deliveryStatus") || "";
+
   const status = searchParams.get("status") || "";
 
   const sort = searchParams.get("sort") || "newest";
@@ -35,7 +38,7 @@ export default function OrdersPage() {
     {
       key: "status",
 
-      label: "Status",
+      label: "Order Status",
 
       options: [
         {
@@ -61,6 +64,72 @@ export default function OrdersPage() {
         {
           label: "Cancelled",
           value: "CANCELLED",
+        },
+      ],
+    },
+
+    {
+      key: "paymentStatus",
+
+      label: "Payment Status",
+
+      options: [
+        {
+          label: "Pending",
+          value: "PENDING",
+        },
+
+        {
+          label: "Paid",
+          value: "PAID",
+        },
+
+        {
+          label: "Failed",
+          value: "FAILED",
+        },
+
+        {
+          label: "Refunded",
+          value: "REFUNDED",
+        },
+      ],
+    },
+
+    {
+      key: "deliveryStatus",
+
+      label: "Delivery Status",
+
+      options: [
+        {
+          label: "Pending",
+          value: "PENDING",
+        },
+
+        {
+          label: "Packed",
+          value: "PACKED",
+        },
+
+        {
+          label: "Shipped",
+          value: "SHIPPED",
+        },
+
+        {
+          label: "Out For Delivery",
+          value: "OUT_FOR_DELIVERY",
+        },
+
+        {
+          label: "Delivered",
+          value: "DELIVERED",
+        },
+
+        {
+          label: "Failed",
+          value: "FAILED",
         },
       ],
     },
@@ -103,7 +172,7 @@ export default function OrdersPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [page, currentLimit, search, status, sort]);
+  }, [page, currentLimit, search, status,paymentStatus,deliveryStatus, sort]);
 
   async function loadOrders() {
     try {
@@ -121,6 +190,14 @@ export default function OrdersPage() {
 
       if (status) {
         params.set("status", status);
+      }
+
+      if (paymentStatus) {
+        params.set("paymentStatus", paymentStatus);
+      }
+
+      if (deliveryStatus) {
+        params.set("deliveryStatus", deliveryStatus);
       }
 
       if (sort) {
