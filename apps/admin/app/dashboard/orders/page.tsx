@@ -18,11 +18,14 @@ export default function OrdersPage() {
   const search = searchParams.get("search") || "";
 
   const paymentStatus = searchParams.get("paymentStatus") || "";
+  const paymentMethod = searchParams.get("paymentMethod") || "";
   const deliveryStatus = searchParams.get("deliveryStatus") || "";
 
   const status = searchParams.get("status") || "";
 
   const sort = searchParams.get("sort") || "newest";
+  const from = searchParams.get("from") || "";
+  const to = searchParams.get("to") || "";
 
   // STATES
   const [orders, setOrders] = useState<any[]>([]);
@@ -97,6 +100,34 @@ export default function OrdersPage() {
     },
 
     {
+      key: "paymentMethod",
+
+      label: "Payment Method",
+
+      options: [
+        {
+          label: "COD",
+          value: "COD",
+        },
+
+        {
+          label: "ONLINE",
+          value: "ONLINE",
+        },
+
+        {
+          label: "UPI",
+          value: "UPI",
+        },
+
+        {
+          label: "CARD",
+          value: "CARD",
+        },
+      ],
+    },
+
+    {
       key: "deliveryStatus",
 
       label: "Delivery Status",
@@ -135,6 +166,18 @@ export default function OrdersPage() {
     },
 
     {
+      key: "from",
+      label: "From",
+      type: "date",
+    },
+
+    {
+      key: "to",
+      label: "To",
+      type: "date",
+    },
+
+    {
       key: "sort",
 
       label: "Sort",
@@ -161,6 +204,16 @@ export default function OrdersPage() {
           label: "ID Low-High",
           value: "id_asc",
         },
+
+        {
+          label: "Highest Amount",
+          value: "highest",
+        },
+
+        {
+          label: "Lowest Amount",
+          value: "lowest",
+        },
       ],
     },
   ];
@@ -172,7 +225,18 @@ export default function OrdersPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [page, currentLimit, search, status,paymentStatus,deliveryStatus, sort]);
+  }, [
+    page,
+    currentLimit,
+    search,
+    status,
+    paymentStatus,
+    paymentMethod,
+    deliveryStatus,
+    sort,
+    from,
+    to,
+  ]);
 
   async function loadOrders() {
     try {
@@ -196,8 +260,20 @@ export default function OrdersPage() {
         params.set("paymentStatus", paymentStatus);
       }
 
+      if (paymentMethod) {
+        params.set("paymentMethod", paymentMethod);
+      }
+
       if (deliveryStatus) {
         params.set("deliveryStatus", deliveryStatus);
+      }
+
+      if (from) {
+        params.set("from", from);
+      }
+      
+      if (to) {
+        params.set("to", to);
       }
 
       if (sort) {
@@ -240,13 +316,11 @@ export default function OrdersPage() {
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-white border rounded-2xl p-4 shadow-sm">
-        <SearchFilterBar
-          globalSearchKey="search"
-          globalSearchPlaceholder="Search by order ID, customer name, phone..."
-          fields={filterFields}
-        />
-      </div>
+      <SearchFilterBar
+        globalSearchKey="search"
+        globalSearchPlaceholder="Search by order ID, phone, shipping name, tracking ID..."
+        fields={filterFields}
+      />
 
       {/* BULK ACTIONS */}
       <BulkActions selected={selected} orders={orders} refresh={loadOrders} />

@@ -1,13 +1,17 @@
 import { prisma } from "@repo/database";
 import { NextResponse } from "next/server";
 
+import {
+  PaymentStatus,
+  PaymentMethod,
+} from "@prisma/client";
+
 import { logAdminAction } from "../../lib/adminLog";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // SEARCH PARAMS
     const search = searchParams.get("search") || "";
 
     const status = searchParams.get("status") || "";
@@ -16,7 +20,6 @@ export async function GET(req: Request) {
 
     const sort = searchParams.get("sort") || "newest";
 
-    // PAGINATION
     const page = Number(searchParams.get("page") || 1);
 
     const limit = Number(searchParams.get("limit") || 10);
@@ -52,16 +55,36 @@ export async function GET(req: Request) {
                   mode: "insensitive",
                 },
               },
+
+              // SEARCH USER
+              {
+                user: {
+                  OR: [
+                    {
+                      username: {
+                        contains: search,
+                        mode: "insensitive",
+                      },
+                    },
+                    {
+                      phone: {
+                        contains: search,
+                        mode: "insensitive",
+                      },
+                    },
+                  ],
+                },
+              },
             ],
           }
         : {}),
 
       ...(status && {
-        paymentStatus: status,
+        paymentStatus: status as PaymentStatus,
       }),
 
       ...(method && {
-        paymentMethod: method,
+        paymentMethod: method as PaymentMethod,
       }),
     };
 
@@ -94,9 +117,32 @@ export async function GET(req: Request) {
         where,
 
         include: {
-          user: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              phone: true,
+            },
+          },
 
-          items: true,
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+
+              variant: {
+                select: {
+                  id: true,
+                  value: true,
+                  unit: true,
+                },
+              },
+            },
+          },
         },
 
         orderBy,
@@ -111,8 +157,21 @@ export async function GET(req: Request) {
       }),
     ]);
 
+    // DECIMAL FIX
+    const formattedPayments = payments.map((payment) => ({
+      ...payment,
+
+      total: Number(payment.total),
+
+      items: payment.items.map((item) => ({
+        ...item,
+
+        price: Number(item.price),
+      })),
+    }));
+
     return NextResponse.json({
-      data: payments,
+      data: formattedPayments,
 
       total,
 
@@ -137,42 +196,69 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { id, action } = await req.json();
+  try {
+    const { id, action } = await req.json();
 
-  let status = "PENDING";
+    let status: PaymentStatus = "PENDING";
 
-  if (action === "MARK_PAID") {
-    status = "PAID";
+    if (action === "MARK_PAID") {
+      status = "PAID";
+    }
+
+    if (action === "FAIL") {
+      status = "FAILED";
+    }
+
+    if (action === "REFUND") {
+      status = "REFUNDED";
+    }
+
+    if (action === "SET_PENDING") {
+      status = "PENDING";
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id,
+      },
+
+      data: {
+        paymentStatus: status,
+
+        ...(status === "PAID"
+          ? {
+              paidAt: new Date(),
+            }
+          : {}),
+      },
+    });
+
+    // LOG ACTION
+    await logAdminAction({
+      action,
+      entity: "ORDER",
+      entityId: id,
+    });
+
+    return NextResponse.json({
+      success: true,
+
+      data: {
+        ...updatedOrder,
+
+        total: Number(updatedOrder.total),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to update payment status",
+      },
+      {
+        status: 500,
+      }
+    );
   }
-
-  if (action === "FAIL") {
-    status = "FAILED";
-  }
-
-  if (action === "REFUND") {
-    status = "REFUNDED";
-  }
-
-  if (action === "SET_PENDING") {
-    status = "PENDING";
-  }
-
-  await prisma.order.update({
-    where: { id },
-
-    data: {
-      paymentStatus: status as any,
-    },
-  });
-
-  // LOG ACTION
-  await logAdminAction({
-    action,
-    entity: "ORDER",
-    entityId: id,
-  });
-
-  return NextResponse.json({
-    success: true,
-  });
 }

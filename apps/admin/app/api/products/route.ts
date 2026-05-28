@@ -1,5 +1,5 @@
-import { prisma } from "@repo/database"
-import { NextResponse } from "next/server"
+import { prisma } from "@repo/database";
+import { NextResponse } from "next/server";
 
 // GET PRODUCTS
 
@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const search = searchParams.get("search") || "";
 
     const status = searchParams.get("status") || "";
+    const stock = searchParams.get("stock") || "";
 
     const category = searchParams.get("category") || "";
     const brand = searchParams.get("brand") || "";
@@ -21,59 +22,90 @@ export async function GET(req: Request) {
     const limit = Number(searchParams.get("limit") || 10);
 
     // WHERE FILTER
-    const where: any = {}
+    const where: any = {};
 
     if (search) {
-      where.name = {
-        contains: search,
-        mode: "insensitive",
-      }
+      where.OR = [
+        {
+          name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          technicalName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
     }
 
     if (status) {
-      where.isActive = status === "active"
+      where.isActive = status === "active";
     }
 
     if (category) {
-      where.categoryId = Number(category)
+      where.categoryId = Number(category);
     }
 
     if (brand) {
-      where.brandId = Number(brand)
+      where.brandId = Number(brand);
     }
-    
 
-    
+    if (stock === "in") {
+      where.variants = {
+        some: {
+          stock: {
+            gt: 0,
+          },
+        },
+      };
+    }
+
+    if (stock === "out") {
+      where.variants = {
+        every: {
+          stock: 0,
+        },
+      };
+    }
+
     // SORTING
-let orderBy: any = {
-  name: "asc", // DEFAULT A-Z
-};
-
-switch (sort) {
-  case "newest":
-    orderBy = {
-      createdAt: "desc",
-    };
-    break;
-
-  case "oldest":
-    orderBy = {
-      createdAt: "asc",
-    };
-    break;
-
-  case "name_desc":
-    orderBy = {
-      name: "desc",
-    };
-    break;
-
-  case "name_asc":
-  default:
-    orderBy = {
+    let orderBy: any = {
       name: "asc",
     };
-}
+
+    switch (sort) {
+      case "newest":
+        orderBy = {
+          createdAt: "desc",
+        };
+        break;
+
+      case "oldest":
+        orderBy = {
+          createdAt: "asc",
+        };
+        break;
+
+      case "name_desc":
+        orderBy = {
+          name: "desc",
+        };
+        break;
+
+      case "name_asc":
+        orderBy = {
+          name: "asc",
+        };
+        break;
+
+      default:
+        orderBy = {
+          name: "asc",
+        };
+    }
 
     // FETCH
     let products = await prisma.product.findMany({
@@ -85,58 +117,70 @@ switch (sort) {
         brand: true,
       },
       orderBy,
-      skip: (page - 1) * limit,
-      take: limit,
-    })
-
-    // SORT BY SELLING PRICE
-    if (sort === "price_low") {
-      products = products.sort((a: any, b: any) => {
-        const aPrice = Math.min(
-          ...a.variants.map((v: any) => v.sellingPrice ?? 0)
-        );
-
-        const bPrice = Math.min(
-          ...b.variants.map((v: any) => v.sellingPrice ?? 0)
-        );
-
-        return aPrice - bPrice;
-      });
-    }
-
-    if (sort === "price_high") {
-      products = products.sort((a: any, b: any) => {
-        const aPrice = Math.max(
-          ...a.variants.map((v: any) => v.sellingPrice ?? 0)
-        );
-
-        const bPrice = Math.max(
-          ...b.variants.map((v: any) => v.sellingPrice ?? 0)
-        );
-
-        return bPrice - aPrice;
-      });
-    }
-
-
-    const total = await prisma.product.count({
-      where,
     });
 
+    // Heper function for SORT
+    const getMinPrice = (variants: any[]) => {
+      if (!variants?.length) return 0;
+
+      return Math.min(...variants.map((v: any) => v.sellingPrice ?? 0));
+    };
+
+    const getTotalStock = (variants: any[]) => {
+      if (!variants?.length) return 0;
+
+      return variants.reduce(
+        (total: number, v: any) => total + (v.stock || 0),
+        0
+      );
+    };
+
+    // PRICE LOW SELLING PRICE
+    if (sort === "price_low") {
+      products = products.sort((a: any, b: any) => {
+        return getMinPrice(a.variants) - getMinPrice(b.variants);
+      });
+    }
+
+    // PRICE HIGH SELLING PRICE
+    if (sort === "price_high") {
+      products = products.sort((a: any, b: any) => {
+        return getMinPrice(b.variants) - getMinPrice(a.variants);
+      });
+    }
+
+    // STOCK LOW
+    if (sort === "stock_low") {
+      products = products.sort((a: any, b: any) => {
+        return getTotalStock(a.variants) - getTotalStock(b.variants);
+      });
+    }
+
+    // STOCK HIGH
+    if (sort === "stock_high") {
+      products = products.sort((a: any, b: any) => {
+        return getTotalStock(b.variants) - getTotalStock(a.variants);
+      });
+    }
+
+    const total = products.length;
+
+    const paginatedProducts = products.slice((page - 1) * limit, page * limit);
+
     return NextResponse.json({
-      data: products,
+      data: paginatedProducts,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error("GET PRODUCTS ERROR:", error)
+    console.error("GET PRODUCTS ERROR:", error);
 
     return NextResponse.json(
       { error: "Failed to fetch products" },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -167,13 +211,9 @@ export async function POST(req: Request) {
     const technicalName = body.technicalName?.trim() || null;
     const description = body.description?.trim() || null;
 
-    const categoryId = body.categoryId
-      ? Number(body.categoryId)
-      : null;
+    const categoryId = body.categoryId ? Number(body.categoryId) : null;
 
-    const brandId = body.brandId
-      ? Number(body.brandId)
-      : null;
+    const brandId = body.brandId ? Number(body.brandId) : null;
 
     /* ================= CREATE ================= */
 
@@ -201,22 +241,20 @@ export async function POST(req: Request) {
         variants: {
           create: body.variants.map((v: any) => {
             let variantName = "Unit";
-        
+
             if (["KG", "GM"].includes(v.unit)) variantName = "Weight";
             if (["L", "ML"].includes(v.unit)) variantName = "Volume";
             if (["PCS"].includes(v.unit)) variantName = "Unit";
-        
+
             return {
-              name: variantName, 
+              name: variantName,
               value: `${v.value} ${v.unit}`,
-        
+
               unit: v.unit,
-        
+
               mrp: v.mrp ? Number(v.mrp) : null,
-              sellingPrice: v.sellingPrice
-                ? Number(v.sellingPrice)
-                : null,
-        
+              sellingPrice: v.sellingPrice ? Number(v.sellingPrice) : null,
+
               stock: Number(v.stock) || 0,
             };
           }),
@@ -232,7 +270,6 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(product);
-
   } catch (error: any) {
     console.error("CREATE PRODUCT ERROR:", error);
 
@@ -246,10 +283,7 @@ export async function POST(req: Request) {
 
     /* ================= CUSTOM ERRORS ================= */
     if (error.message) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(

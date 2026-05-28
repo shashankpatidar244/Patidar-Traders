@@ -41,7 +41,7 @@ export default function UserTable({ users }: { users: any[] }) {
           <table className="w-full text-sm">
             {/* HEADER */}
             <thead className="bg-white/80 backdrop-blur sticky top-0 z-10 border-b">
-              <tr className="text-left text-gray-500 text-xs uppercase tracking-wide">
+            <tr className="text-left text-gray-500 text-xs uppercase tracking-wide border-b-2 border-black">
                 <th className="p-4 w-10">
                   <input
                     type="checkbox"
@@ -63,7 +63,7 @@ export default function UserTable({ users }: { users: any[] }) {
             </thead>
 
             {/* BODY */}
-            <tbody className="divide-y">
+            <tbody className="[&>tr]:border-b [&>tr]:border-black last:[&>tr]:border-b-0">
               {users.map((user) => (
                 <UserRow
                   key={user.id}

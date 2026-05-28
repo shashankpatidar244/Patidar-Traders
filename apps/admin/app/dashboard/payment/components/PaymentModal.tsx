@@ -1,124 +1,358 @@
-"use client"
+"use client";
 
-import StatusBadge from "./StatusBadge"
+import StatusBadge from "./StatusBadge";
 
-export default function PaymentModal({ payment, onClose, onAction }: any) {
-  if (!payment) return null
+interface PaymentModalProps {
+  payment: any;
+
+  onClose: () => void;
+
+  onAction: (
+    id: number,
+    action: "MARK_PAID" | "REFUND" | "SET_PENDING" | "FAIL"
+  ) => void;
+}
+
+export default function PaymentModal({
+  payment,
+  onClose,
+  onAction,
+}: PaymentModalProps) {
+  if (!payment) {
+    return null;
+  }
+
+  const formattedDate = new Date(payment.createdAt).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-
-      {/* Overlay */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* OVERLAY */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 z-50 animate-fadeIn">
+      {/* MODAL */}
+      <div className="relative z-50 w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
+        {/* HEADER */}
+        <div className="flex items-center justify-between border-b px-6 py-5">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Payment #{payment.id}
+            </h2>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">
-            Payment #{payment.id}
-          </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Order payment details & actions
+            </p>
+          </div>
 
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-black text-xl"
+            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-black transition"
           >
             ✕
           </button>
         </div>
 
-        {/* Status */}
-        <div className="mb-4">
-          <StatusBadge status={payment.paymentStatus} />
-        </div>
+        {/* CONTENT */}
+        <div className="p-6 space-y-6">
+          {/* STATUS ROW */}
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge status={payment.paymentStatus} />
 
-        {/* Sections */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="px-3 py-1 rounded-full bg-gray-100 text-xs font-medium text-gray-700">
+              {payment.paymentMethod}
+            </div>
 
-          {/* Left */}
-          <div className="space-y-2">
-            <p><span className="text-gray-500">Amount:</span> ₹{payment.total}</p>
-            <p><span className="text-gray-500">Method:</span> {payment.paymentMethod}</p>
-            <p><span className="text-gray-500">Date:</span> {new Date(payment.createdAt).toLocaleString()}</p>
+            <div className="px-3 py-1 rounded-full bg-blue-50 text-xs font-medium text-blue-700">
+              {payment.deliveryStatus}
+            </div>
           </div>
 
-          {/* Right */}
-          <div className="space-y-2">
-            <p className="flex items-center gap-2">
-              <span className="text-gray-500">Razorpay:</span>
-              <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                {payment.razorpayOrderId || "-"}
-              </span>
+          {/* GRID */}
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* PAYMENT DETAILS */}
+            <div className="border rounded-2xl p-5 bg-gray-50">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                Payment Details
+              </h3>
 
-              {payment.razorpayOrderId && (
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">Amount</span>
+
+                  <span className="font-semibold text-gray-900">
+                    ₹{Number(payment.total).toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">Payment Method</span>
+
+                  <span className="font-medium">{payment.paymentMethod}</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">Payment Status</span>
+
+                  <span className="font-medium">{payment.paymentStatus}</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">Created</span>
+
+                  <span className="font-medium text-right">
+                    {formattedDate}
+                  </span>
+                </div>
+
+                {payment.paidAt && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-500">Paid At</span>
+
+                    <span className="font-medium text-right">
+                      {new Date(payment.paidAt).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* CUSTOMER */}
+            <div className="border rounded-2xl p-5 bg-gray-50">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                Customer & Shipping
+              </h3>
+
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-gray-500 text-xs">Customer</p>
+
+                  <p className="font-medium text-gray-900">
+                    {payment.user?.username || "Unknown User"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs">Phone</p>
+
+                  <p className="font-medium">{payment.shippingPhone}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs">Shipping Address</p>
+
+                  <p className="font-medium leading-relaxed">
+                    {payment.shippingLine1}
+                    {payment.shippingLine2 && `, ${payment.shippingLine2}`},{" "}
+                    {payment.shippingCity}, {payment.shippingState} -{" "}
+                    {payment.shippingPincode}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RAZORPAY */}
+          <div className="border rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              Razorpay Details
+            </h3>
+
+            <div className="space-y-4 text-sm">
+              {/* ORDER ID */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-gray-500 text-xs mb-1">
+                    Razorpay Order ID
+                  </p>
+
+                  <p className="font-mono text-xs bg-gray-100 px-3 py-2 rounded-lg break-all">
+                    {payment.razorpayOrderId || "N/A"}
+                  </p>
+                </div>
+
+                {payment.razorpayOrderId && (
+                  <button
+                    onClick={() =>
+                      navigator.clipboard.writeText(payment.razorpayOrderId)
+                    }
+                    className="text-blue-600 text-xs hover:underline"
+                  >
+                    Copy
+                  </button>
+                )}
+              </div>
+
+              {/* PAYMENT ID */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-gray-500 text-xs mb-1">
+                    Razorpay Payment ID
+                  </p>
+
+                  <p className="font-mono text-xs bg-gray-100 px-3 py-2 rounded-lg break-all">
+                    {payment.razorpayPaymentId || "N/A"}
+                  </p>
+                </div>
+
+                {payment.razorpayPaymentId && (
+                  <button
+                    onClick={() =>
+                      navigator.clipboard.writeText(payment.razorpayPaymentId)
+                    }
+                    className="text-blue-600 text-xs hover:underline"
+                  >
+                    Copy
+                  </button>
+                )}
+              </div>
+
+              {/* TRACKING */}
+              {payment.trackingId && (
+                <div>
+                  <p className="text-gray-500 text-xs mb-1">Tracking ID</p>
+
+                  <p className="font-mono text-xs bg-gray-100 px-3 py-2 rounded-lg break-all">
+                    {payment.trackingId}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex flex-wrap gap-3 pt-2">
+            {/* PENDING */}
+            {payment.paymentStatus === "PENDING" && (
+              <>
+                {/* MARK PAID */}
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(payment.razorpayOrderId)
+                    const confirmAction = confirm(
+                      `Mark payment #${payment.id} as PAID?`
+                    );
+
+                    if (!confirmAction) return;
+
+                    onAction(payment.id, "MARK_PAID");
                   }}
-                  className="text-blue-600 text-xs hover:underline"
+                  className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition"
                 >
-                  Copy
+                  Mark Paid
                 </button>
-              )}
-            </p>
+
+                {/* MARK FAILED */}
+                <button
+                  onClick={() => {
+                    const confirmAction = confirm(
+                      `Mark payment #${payment.id} as FAILED?`
+                    );
+
+                    if (!confirmAction) return;
+
+                    onAction(payment.id, "FAIL");
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
+                >
+                  Mark Failed
+                </button>
+              </>
+            )}
+
+            {/* PAID */}
+            {payment.paymentStatus === "PAID" && (
+              <>
+                {/* REFUND */}
+                <button
+                  onClick={() => {
+                    const confirmAction = confirm(
+                      `Refund payment #${payment.id}?`
+                    );
+
+                    if (!confirmAction) return;
+
+                    onAction(payment.id, "REFUND");
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition"
+                >
+                  Refund Payment
+                </button>
+
+                {/* FAIL */}
+                <button
+                  onClick={() => {
+                    const confirmAction = confirm(
+                      `Mark payment #${payment.id} as FAILED?`
+                    );
+
+                    if (!confirmAction) return;
+
+                    onAction(payment.id, "FAIL");
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
+                >
+                  Mark Failed
+                </button>
+              </>
+            )}
+
+            {/* FAILED / REFUNDED */}
+            {(payment.paymentStatus === "FAILED" ||
+              payment.paymentStatus === "REFUNDED") && (
+              <>
+                {/* MARK PAID */}
+                <button
+                  onClick={() => {
+                    const confirmAction = confirm(
+                      `Mark payment #${payment.id} as PAID?`
+                    );
+
+                    if (!confirmAction) return;
+
+                    onAction(payment.id, "MARK_PAID");
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition"
+                >
+                  Mark Paid
+                </button>
+
+                {/* SET PENDING */}
+                <button
+                  onClick={() => {
+                    const confirmAction = confirm(
+                      `Set payment #${payment.id} back to PENDING?`
+                    );
+
+                    if (!confirmAction) return;
+
+                    onAction(payment.id, "SET_PENDING");
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium transition"
+                >
+                  Set Pending
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Divider */}
-        <hr className="my-5" />
-
-        {/* Actions */}
-        <div className="flex gap-2 flex-wrap">
-
-          {payment.paymentStatus === "PENDING" && (
-            <button
-              onClick={() => onAction(payment.id, "MARK_PAID")}
-              className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-            >
-              Mark Paid
-            </button>
-          )}
-
-          {payment.paymentStatus === "PAID" && (
-            <button
-              onClick={() => onAction(payment.id, "REFUND")}
-              className="bg-red-600 text-white px-4 py-2 rounded text-sm"
-            >
-              Refund
-            </button>
-          )}
-
-          {payment.paymentStatus === "REFUNDED" && (
-            <>
-              <button
-                onClick={() => onAction(payment.id, "MARK_PAID")}
-                className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-              >
-                Mark Paid
-              </button>
-
-              <button
-                onClick={() => onAction(payment.id, "SET_PENDING")}
-                className="bg-yellow-500 text-white px-4 py-2 rounded text-sm"
-              >
-                Set Pending
-              </button>
-            </>
-          )}
+        {/* FOOTER */}
+        <div className="border-t p-5 bg-gray-50">
+          <button
+            onClick={onClose}
+            className="w-full border border-gray-300 hover:bg-gray-100 rounded-xl py-3 text-sm font-medium transition"
+          >
+            Close
+          </button>
         </div>
-
-        {/* Footer */}
-        <button
-          onClick={onClose}
-          className="mt-6 w-full border py-2 rounded text-sm hover:bg-gray-100"
-        >
-          Close
-        </button>
       </div>
     </div>
-  )
+  );
 }

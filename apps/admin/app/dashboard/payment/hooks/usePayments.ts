@@ -11,6 +11,86 @@ interface UsePaymentsParams {
   limit: number;
 }
 
+export interface PaymentItem {
+  id: number;
+
+  quantity: number;
+
+  price: number;
+
+  product: {
+    id: number;
+    name: string;
+  };
+
+  variant?: {
+    id: number;
+    name: string;
+    value: string;
+    unit?: string;
+  } | null;
+}
+
+export interface PaymentUser {
+  id: number;
+  username?: string | null;
+  phone: string;
+}
+
+export interface PaymentOrder {
+  id: number;
+
+  total: number;
+
+  status: "PENDING" | "CONFIRMED" | "PACKED" | "COMPLETED" | "CANCELLED";
+
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+
+  paymentMethod: "COD" | "UPI" | "CARD";
+
+  deliveryStatus:
+    | "PENDING"
+    | "PACKED"
+    | "SHIPPED"
+    | "OUT_FOR_DELIVERY"
+    | "DELIVERED"
+    | "FAILED";
+
+  razorpayOrderId?: string | null;
+
+  razorpayPaymentId?: string | null;
+
+  razorpaySignature?: string | null;
+
+  trackingId?: string | null;
+
+  paidAt?: string | null;
+
+  expiresAt?: string | null;
+
+  shippingName: string;
+
+  shippingPhone: string;
+
+  shippingLine1: string;
+
+  shippingLine2?: string | null;
+
+  shippingCity: string;
+
+  shippingState: string;
+
+  shippingPincode: string;
+
+  createdAt: string;
+
+  updatedAt: string;
+
+  user: PaymentUser;
+
+  items: PaymentItem[];
+}
+
 interface PaymentMeta {
   total: number;
   page: number;
@@ -26,26 +106,24 @@ export function usePayments({
   page,
   limit,
 }: UsePaymentsParams) {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<PaymentOrder[]>([]);
 
-  const [meta, setMeta] =
-    useState<PaymentMeta>({
-      total: 0,
-      page: 1,
-      limit: 10,
-      totalPages: 1,
-    });
+  const [meta, setMeta] = useState<PaymentMeta>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchPayments = async () => {
     try {
       setLoading(true);
 
-      const params =
-        new URLSearchParams();
+      const params = new URLSearchParams();
 
+      /* FILTERS */
       if (search) {
         params.set("search", search);
       }
@@ -66,29 +144,41 @@ export function usePayments({
 
       params.set("limit", String(limit));
 
-      const res = await fetch(
-        `/api/payment?${params.toString()}`,
-        {
-          cache: "no-store",
-        }
-      );
+      const res = await fetch(`/api/payment?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch payments");
+      }
 
       const json = await res.json();
 
-      setData(json.data || []);
+      /* DECIMAL FIX */
+      const formattedData = (json.data || []).map((order: any) => ({
+        ...order,
+
+        total: Number(order.total),
+
+        items:
+          order.items?.map((item: any) => ({
+            ...item,
+            price: Number(item.price),
+          })) || [],
+      }));
+
+      setData(formattedData);
 
       setMeta({
         total: json.total || 0,
         page: json.page || 1,
         limit: json.limit || 10,
-        totalPages:
-          json.totalPages || 1,
+        totalPages: json.totalPages || 1,
       });
     } catch (error) {
-      console.error(
-        "PAYMENTS FETCH ERROR:",
-        error
-      );
+      console.error("PAYMENTS FETCH ERROR:", error);
+
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -97,20 +187,13 @@ export function usePayments({
   useEffect(() => {
     fetchPayments();
 
-    // AUTO REFRESH
+    /* AUTO REFRESH */
     const interval = setInterval(() => {
       fetchPayments();
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [
-    search,
-    status,
-    method,
-    sort,
-    page,
-    limit,
-  ]);
+  }, [search, status, method, sort, page, limit]);
 
   return {
     data,

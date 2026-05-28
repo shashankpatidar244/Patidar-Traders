@@ -80,7 +80,7 @@ export default function ProductTable() {
             </thead>
 
             {/* BODY */}
-            <tbody className="divide-y divide-gray-100 [&>tr]:h-[76px]">
+            <tbody className="[&>tr]:border-b [&>tr]:border-black [&>tr]:h-[76px]">
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-10 text-gray-500">

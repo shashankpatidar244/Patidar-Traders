@@ -71,13 +71,7 @@ export default async function Page({ searchParams }: PageProps) {
       </div>
 
       {/* FILTER + ACTION BAR */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex-1">
-            <UserSearchFilters />
-          </div>
-        </div>
-      </div>
+      <UserSearchFilters />
 
       {/* TABLE */}
       <UserTable users={users} />

@@ -23,6 +23,8 @@ export interface FilterField {
   key: string;
   label: string;
 
+  type?: "select" | "date";
+
   isSortEngine?: boolean;
 
   placeholder?: string;
@@ -135,7 +137,83 @@ export default function SearchFilterBar({
       searchParams.get(key)
   ).length;
 
-  // RENDER FILTER
+  // DATE FIELD
+  // DATE FIELD
+function renderDateField(field: FilterField) {
+  const value = searchParams.get(field.key) || "";
+
+  const isActive = !!value;
+
+  return (
+    <div
+      key={field.key}
+      className={`
+        flex items-center gap-2
+        rounded-full border px-3.5 py-1.5
+        transition-all duration-150 shadow-sm
+
+        ${
+          isActive
+            ? `
+              bg-black border-black text-white
+            `
+            : `
+              bg-white border-gray-200
+              hover:border-gray-300
+              hover:bg-gray-50
+            `
+        }
+      `}
+    >
+      <span
+        className={`
+          text-xs font-medium whitespace-nowrap
+
+          ${
+            isActive
+              ? "text-white"
+              : "text-gray-500"
+          }
+        `}
+      >
+        {field.label}
+      </span>
+
+      <input
+        type="date"
+        value={value}
+        onChange={(e) =>
+          handleUpdate(field.key, e.target.value || null)
+        }
+        className={`
+          text-xs bg-transparent outline-none
+
+          ${
+            isActive
+              ? `
+                text-white
+                [color-scheme:dark]
+              `
+              : `
+                text-gray-700
+              `
+          }
+        `}
+      />
+
+      {isActive && (
+        <button
+          onClick={() => handleUpdate(field.key, null)}
+          className="hover:opacity-70 transition"
+        >
+          <X className="w-3.5 h-3.5 text-white" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+  // DROPDOWN FILTER
   function renderPillButton(field: FilterField) {
     const currentValue = searchParams.get(field.key) || "";
 
@@ -444,7 +522,11 @@ export default function SearchFilterBar({
               <span>Filters</span>
             </div>
 
-            {structuralFilters.map(renderPillButton)}
+            {structuralFilters.map((field) =>
+              field.type === "date"
+                ? renderDateField(field)
+                : renderPillButton(field)
+            )}
           </div>
         )}
 

@@ -15,6 +15,7 @@ export default async function ProductsPage({
     category?: string;
     brand?: string;
     status?: string;
+    stock?: string;                     
     sort?: string;
     page?: string;
     limit?: string;
@@ -26,6 +27,7 @@ export default async function ProductsPage({
   const category = params.category || "";
   const brand = params.brand || "";
   const status = params.status || "";
+  const stock = params.stock || "";
   const sort = params.sort || "newest";
 
   const page = Number(params.page || 1);
@@ -78,23 +80,37 @@ export default async function ProductsPage({
     },
 
     {
+      key: "stock",
+      label: "Stock",
+      options: [
+        {
+          label: "In Stock",
+          value: "in",
+        },
+        {
+          label: "Out of Stock",
+          value: "out",
+        },
+      ],
+    },
+
+    {
       key: "sort",
       label: "Sort",
       isSortEngine: true,
       options: [
-        {
-          label: "Newest",
-          value: "newest",
-        },
-        {
-          label: "Price Low → High",
-          value: "price_low",
-        },
-        {
-          label: "Price High → Low",
-          value: "price_high",
-        },
-      ],
+        { label: "Newest", value: "newest" },
+        { label: "Oldest", value: "oldest" },
+      
+        { label: "Name A → Z", value: "name_asc" },
+        { label: "Name Z → A", value: "name_desc" },
+      
+        { label: "Price Low → High", value: "price_low" },
+        { label: "Price High → Low", value: "price_high" },
+      
+        { label: "Stock Low → High", value: "stock_low" },
+        { label: "Stock High → Low", value: "stock_high" },
+      ]
     },
   ];
 
@@ -102,10 +118,20 @@ export default async function ProductsPage({
   const where: any = {};
 
   if (search) {
-    where.name = {
-      contains: search,
-      mode: "insensitive",
-    };
+    where.OR = [
+      {
+        name: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        technicalName: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+    ];
   }
 
   if (category) {
@@ -118,6 +144,24 @@ export default async function ProductsPage({
 
   if (status) {
     where.isActive = status === "active";
+  }
+
+  if (stock === "in") {
+    where.variants = {
+      some: {
+        stock: {
+          gt: 0,
+        },
+      },
+    };
+  }
+  
+  if (stock === "out") {
+    where.variants = {
+      every: {
+        stock: 0,
+      },
+    };
   }
 
   // SORT
@@ -187,7 +231,7 @@ export default async function ProductsPage({
       <SearchFilterBar
         fields={fields}
         globalSearchKey="search"
-        globalSearchPlaceholder="Search products..."
+        globalSearchPlaceholder="Search by product or technical name..."
       />
 
       {/* TABLE */}

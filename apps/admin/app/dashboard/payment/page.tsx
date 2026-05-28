@@ -2,36 +2,42 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+
 import { usePayments } from "./hooks/usePayments";
+
 import PaymentTable from "./components/PaymentTable";
 import PaymentStats from "./components/PaymentStats";
 import PaymentModal from "./components/PaymentModal";
 import Pagination from "../components/Pagination";
 import { TableSkeleton } from "./components/Skeleton";
 import BulkActions from "./components/BulkActions";
-import SearchFilterBar, {
-  FilterField,
-} from "../components/SearchFilterBar";
+import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
 
 export default function PaymentPage() {
-
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page") || 1);
-  const currentLimit = Number( searchParams.get("limit") || 10 );
+
+  const currentLimit = Number(searchParams.get("limit") || 10);
+
   const search = searchParams.get("search") || "";
+
   const status = searchParams.get("status") || "";
+
   const method = searchParams.get("method") || "";
+
   const sort = searchParams.get("sort") || "newest";
+
   const [selected, setSelected] = useState<any>(null);
+
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // FILTER CONFIG
+  // FILTER
   const filterFields: FilterField[] = useMemo(
     () => [
       {
         key: "status",
 
-        label: "Status",
+        label: "Payment Status",
 
         options: [
           {
@@ -59,7 +65,7 @@ export default function PaymentPage() {
       {
         key: "method",
 
-        label: "Method",
+        label: "Payment Method",
 
         options: [
           {
@@ -82,18 +88,18 @@ export default function PaymentPage() {
       {
         key: "sort",
 
-        label: "Sort",
+        label: "Sort By",
 
         isSortEngine: true,
 
         options: [
           {
-            label: "Newest",
+            label: "Newest First",
             value: "newest",
           },
 
           {
-            label: "Oldest",
+            label: "Oldest First",
             value: "oldest",
           },
 
@@ -112,13 +118,8 @@ export default function PaymentPage() {
     []
   );
 
-  // FETCH DATA
-  const {
-    data,
-    meta,
-    loading,
-    refetch,
-  } = usePayments({
+  // FETCH
+  const { data, meta, loading, refetch } = usePayments({
     search,
     status,
     method,
@@ -127,79 +128,111 @@ export default function PaymentPage() {
     limit: currentLimit,
   });
 
-  // BULK ACTION
-  const handleBulkAction = async (
-    action: string
-  ) => {
-    await fetch("/api/payment/bulk", {
-      method: "POST",
+  async function handleBulkAction(action: string) {
+    try {
+      await fetch("/api/payment/bulk", {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
-      },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-      body: JSON.stringify({
-        ids: selectedIds,
-        action,
-      }),
-    });
+        body: JSON.stringify({
+          ids: selectedIds,
+          action,
+        }),
+      });
 
-    setSelectedIds([]);
+      setSelectedIds([]);
 
-    refetch();
-  };
+      refetch();
+    } catch (error) {
+      console.error("BULK PAYMENT ACTION ERROR:", error);
+    }
+  }
 
-  // SINGLE ACTION
-  const handleAction = async (
-    id: number,
-    action: string
-  ) => {
-    await fetch("/api/payment", {
-      method: "POST",
+  async function handleAction(id: number, action: string) {
+    try {
+      const res = await fetch("/api/payment", {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
-      },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-      body: JSON.stringify({
-        id,
-        action,
-      }),
-    });
+        body: JSON.stringify({
+          id,
+          action,
+        }),
+      });
 
-    refetch();
-  };
+      if (!res.ok) {
+        throw new Error("Failed to update payment");
+      }
+
+      // WAIT FOR REFRESH
+      await refetch();
+
+      // UPDATE MODAL DATA
+      if (selected?.id === id) {
+        const refreshed = await fetch(`/api/payment/${id}`, {
+          cache: "no-store",
+        });
+
+        const updatedPayment = await refreshed.json();
+
+        setSelected(updatedPayment);
+      }
+    } catch (error) {
+      console.error("PAYMENT ACTION ERROR:", error);
+    }
+  }
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Payments</h1>
-          <p className="text-sm text-gray-500">
-            Manage and track all transactions
+          <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Track transactions, refunds, failed payments and Razorpay activity
           </p>
+        </div>
+
+        {/* TOTAL COUNT */}
+        <div className="flex items-center gap-3">
+          <div className="bg-white border rounded-xl px-4 py-3 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-gray-400">
+              Total Payments
+            </p>
+
+            <p className="text-xl font-bold text-gray-900">
+              {meta?.total || 0}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* STATS */}
       <PaymentStats data={data} />
 
-      {/* Filters */}
+      {/* FILTER BAR */}
       <SearchFilterBar
         fields={filterFields}
         globalSearchKey="search"
-        globalSearchPlaceholder="Search by payment ID or Razorpay order ID..."
+        globalSearchPlaceholder="Search by payment ID, Razorpay order ID or payment ID..."
       />
 
+      {/* BULK ACTIONS */}
       <BulkActions
         selectedIds={selectedIds}
         onBulkAction={handleBulkAction}
         clearSelection={() => setSelectedIds([])}
       />
 
-      {/* Table Section */}
-      <div className="bg-white border rounded-xl shadow-sm">
+      {/* TABLE */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-4">
             <TableSkeleton />
@@ -211,23 +244,21 @@ export default function PaymentPage() {
               selectedIds={selectedIds}
               setSelectedIds={setSelectedIds}
               onAction={handleAction}
-              onView={(p: any) => setSelected(p)}
+              onView={(payment: any) => setSelected(payment)}
             />
-
-            {/* Pagination */}
-            <Pagination
-                title="Payments"
-                page={page}
-                totalPages={
-                  meta?.totalPages || 1
-                }
-                currentLimit={currentLimit}
-              />
           </>
         )}
       </div>
 
-      {/* Modal */}
+      {/* PAGINATION */}
+      <Pagination
+        title="Payments"
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        currentLimit={currentLimit}
+      />
+
+      {/* PAYMENT MODAL */}
       <PaymentModal
         payment={selected}
         onClose={() => setSelected(null)}

@@ -157,7 +157,7 @@ export default function DashboardLayout({
 
           {/* CONTENT */}
           <main className="flex-1 overflow-x-auto overflow-y-auto p-3 md:p-6 min-w-0">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 md:p-6 shadow-sm min-h-full transition min-w-0">
+          <div className="bg-amber-50/50 dark:bg-zinc-900 rounded-2xl p-3 md:p-6 shadow-sm min-h-full transition min-w-0">
               {children}
             </div>
           </main>

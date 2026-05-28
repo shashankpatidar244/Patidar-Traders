@@ -31,7 +31,11 @@ export async function GET(req: NextRequest) {
       where.status = status as OrderStatus;
     }
 
-    if (paymentMethod) {
+    if (paymentMethod === "ONLINE") {
+      where.paymentMethod = {
+        in: ["UPI", "CARD"],
+      };
+    } else if (paymentMethod) {
       where.paymentMethod = paymentMethod as PaymentMethod;
     }
 
@@ -43,12 +47,31 @@ export async function GET(req: NextRequest) {
       where.deliveryStatus = deliveryStatus as DeliveryStatus;
     }
 
+    if (from || to) {
+  where.createdAt = {};
+
+  if (from) {
+    where.createdAt.gte = new Date(from);
+  }
+
+  if (to) {
+    const endDate = new Date(to);
+    endDate.setHours(23, 59, 59, 999);
+
+    where.createdAt.lte = endDate;
+  }
+}
+
     // SEARCH
     if (search) {
       where.OR = [
-        {
-          id: Number(search) || undefined,
-        },
+        ...(Number(search)
+          ? [
+              {
+                id: Number(search),
+              },
+            ]
+          : []),
 
         {
           shippingName: {
@@ -64,10 +87,25 @@ export async function GET(req: NextRequest) {
         },
 
         {
+          trackingId: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+
+        {
           user: {
             username: {
               contains: search,
               mode: "insensitive",
+            },
+          },
+        },
+
+        {
+          user: {
+            phone: {
+              contains: search,
             },
           },
         },
