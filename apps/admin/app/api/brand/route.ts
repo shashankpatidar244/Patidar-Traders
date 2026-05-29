@@ -1,4 +1,5 @@
 import { prisma } from "@repo/database"
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server"
 
 export async function GET(req: Request) {
@@ -17,18 +18,18 @@ export async function GET(req: Request) {
 
     // ================= WHERE =================
 
-    const where = {
-      name: {
+    const where: Prisma.BrandWhereInput = {};
+
+    if (search) {
+      where.name = {
         contains: search,
-        mode: "insensitive" as const,
-      },
-    };
+        mode: "insensitive",
+      };
+    }
 
     // ================= SORT =================
 
-    let orderBy: any = {
-      createdAt: "desc",
-    };
+    let orderBy: Prisma.BrandOrderByWithRelationInput
 
     switch (sort) {
       case "oldest":

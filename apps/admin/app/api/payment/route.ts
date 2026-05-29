@@ -1,9 +1,11 @@
 import { prisma } from "@repo/database";
 import { NextResponse } from "next/server";
-
 import {
+  Prisma,
   PaymentStatus,
   PaymentMethod,
+  OrderStatus,
+  DeliveryStatus,
 } from "@prisma/client";
 
 import { logAdminAction } from "../../lib/adminLog";
@@ -13,22 +15,19 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const search = searchParams.get("search") || "";
-
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const paymentMethod = searchParams.get("paymentMethod") || "";
     const status = searchParams.get("status") || "";
-
-    const method = searchParams.get("method") || "";
-
+    const deliveryStatus = searchParams.get("deliveryStatus") || "";
     const sort = searchParams.get("sort") || "newest";
 
     const page = Number(searchParams.get("page") || 1);
-
     const limit = Number(searchParams.get("limit") || 10);
-
     const skip = (page - 1) * limit;
 
     // SEARCH
-    const isNumber = search && !isNaN(Number(search));
-
+    const isNumber =
+    search.trim() !== "" && !isNaN(Number(search));
     // WHERE
     const where: any = {
       ...(search
@@ -56,59 +55,71 @@ export async function GET(req: Request) {
                 },
               },
 
-              // SEARCH USER
+              {
+                shippingName: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+
               {
                 user: {
-                  OR: [
-                    {
-                      username: {
-                        contains: search,
-                        mode: "insensitive",
-                      },
-                    },
-                    {
-                      phone: {
-                        contains: search,
-                        mode: "insensitive",
-                      },
-                    },
-                  ],
+                  phone: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
                 },
               },
             ],
           }
         : {}),
 
-      ...(status && {
-        paymentStatus: status as PaymentStatus,
+      ...(paymentStatus && {
+        paymentStatus: paymentStatus as PaymentStatus,
       }),
 
-      ...(method && {
-        paymentMethod: method as PaymentMethod,
+      ...(paymentMethod && {
+        paymentMethod: paymentMethod as PaymentMethod,
+      }),
+
+      ...(status && {
+        status: status as OrderStatus,
+      }),
+      
+      ...(deliveryStatus && {
+        deliveryStatus: deliveryStatus as DeliveryStatus,
       }),
     };
 
     // SORT
-    let orderBy: any = {
+    let orderBy: Prisma.OrderOrderByWithRelationInput = {
       createdAt: "desc",
     };
-
-    if (sort === "oldest") {
-      orderBy = {
-        createdAt: "asc",
-      };
-    }
-
-    if (sort === "amount_desc") {
-      orderBy = {
-        total: "desc",
-      };
-    }
-
-    if (sort === "amount_asc") {
-      orderBy = {
-        total: "asc",
-      };
+    
+    switch (sort) {
+      case "oldest":
+        orderBy = {
+          createdAt: "asc",
+        };
+        break;
+    
+      case "highest":
+        orderBy = {
+          total: "desc",
+        };
+        break;
+    
+      case "lowest":
+        orderBy = {
+          total: "asc",
+        };
+        break;
+    
+      case "newest":
+      default:
+        orderBy = {
+          createdAt: "desc",
+        };
     }
 
     // FETCH

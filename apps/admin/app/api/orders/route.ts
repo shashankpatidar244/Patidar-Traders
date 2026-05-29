@@ -47,20 +47,21 @@ export async function GET(req: NextRequest) {
       where.deliveryStatus = deliveryStatus as DeliveryStatus;
     }
 
+    // DATE FILTER
     if (from || to) {
-  where.createdAt = {};
+      where.createdAt = {};
 
-  if (from) {
-    where.createdAt.gte = new Date(from);
-  }
+      if (from) {
+        where.createdAt.gte = new Date(from);
+      }
 
-  if (to) {
-    const endDate = new Date(to);
-    endDate.setHours(23, 59, 59, 999);
+      if (to) {
+        const endDate = new Date(to);
+        endDate.setHours(23, 59, 59, 999);
 
-    where.createdAt.lte = endDate;
-  }
-}
+        where.createdAt.lte = endDate;
+      }
+    }
 
     // SEARCH
     if (search) {
@@ -112,26 +113,8 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    // DATE FILTER
-    if (from || to) {
-      where.createdAt = {};
-
-      if (from) {
-        where.createdAt.gte = new Date(from);
-      }
-
-      if (to) {
-        const endDate = new Date(to);
-        endDate.setHours(23, 59, 59, 999);
-
-        where.createdAt.lte = endDate;
-      }
-    }
-
     // SORTING
-    let orderBy:
-      | Prisma.OrderOrderByWithRelationInput
-      | Prisma.OrderOrderByWithRelationInput[] = [
+    let orderBy: Prisma.OrderOrderByWithRelationInput[] = [
       {
         createdAt: "desc",
       },

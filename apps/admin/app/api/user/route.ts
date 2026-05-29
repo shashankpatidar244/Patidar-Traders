@@ -1,4 +1,5 @@
 import { prisma } from "@repo/database";
+import { Prisma, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -6,97 +7,72 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const page = Number(searchParams.get("page") || 1);
-
     const limit = Number(searchParams.get("limit") || 10);
 
     const search = searchParams.get("search") || "";
-
     const role = searchParams.get("role") || "";
-
     const status = searchParams.get("status") || "";
-
     const sort = searchParams.get("sort") || "name_asc";
 
-    // ================= WHERE =================
-    const where: any = {
-      AND: [],
-    };
-        if (search) {
-          where.AND.push({
-            OR: [
-              {
-                username: {
-                  contains: search,
-                  mode: "insensitive",
-                },
-              },
-    
-              {
-                phone: {
-                  contains: search,
-                },
-              },
-            ],
-          });
-        }
-    
-        if (role) {
-          where.AND.push({
-            role,
-          });
-        }
-    
-        if (status === "ACTIVE") {
-          where.AND.push({
-            isBlocked: false,
-          });
-        }
-    
-        if (status === "BLOCKED") {
-          where.AND.push({
-            isBlocked: true,
-          });
-        }
-    
-        // ================= SORT =================
-    
-        let orderBy: any[] = [
+    const Filters: Prisma.UserWhereInput[] = [];
+
+    if (search) {
+      Filters.push({
+        OR: [
           {
-            username: "asc",
+            username: {
+              contains: search,
+              mode: "insensitive",
+            },
           },
           {
-            id: "asc",
+            phone: {
+              contains: search,
+            },
           },
-        ];
-    
-        switch (sort) {
-          case "newest":
-            orderBy = [
-              {
-                createdAt: "desc",
-              },
-            ];
-            break;
-    
-          case "oldest":
-            orderBy = [
-              {
-                createdAt: "asc",
-              },
-            ];
-            break;
-    
-          case "name_asc":
-          default:
-            orderBy = [
-              {
-                username: "asc",
-              },
-              {
-                id: "asc",
-              },
-            ];
-        }
+        ],
+      });
+    }
+
+    if (role && Object.values(Role).includes(role as Role)) {
+      Filters.push({
+        role: role as Role,
+      });
+    }
+
+    if (status === "ACTIVE") {
+      Filters.push({ isBlocked: false });
+    }
+
+    if (status === "BLOCKED") {
+      Filters.push({ isBlocked: true });
+    }
+
+    const where: Prisma.UserWhereInput =
+      Filters.length > 0 ? { AND: Filters } : {};
+
+    // ================= SORT =================
+
+    let orderBy: Prisma.UserOrderByWithRelationInput[] = [];
+
+    switch (sort) {
+      case "newest":
+        orderBy = [{ createdAt: "desc" }];
+        break;
+
+      case "oldest":
+        orderBy = [{ createdAt: "asc" }];
+        break;
+
+      case "name_desc":
+        orderBy = [{ username: "desc" }];
+        break;
+
+      case "name_asc":
+      default:
+        orderBy = [{ username: "asc" }];
+        break;
+    }
 
     // ================= FETCH =================
 

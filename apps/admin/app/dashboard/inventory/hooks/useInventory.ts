@@ -10,8 +10,11 @@ export function useInventory() {
   const currentLimit = Number(searchParams.get("limit") || 10);
 
   const search = searchParams.get("search") || "";
-  const status = searchParams.get("status") || "";
-  const sort = searchParams.get("sort") || "name_asc";
+  const stock = searchParams.get("stock") || "";
+  const unit = searchParams.get("unit") || "";
+  const category = searchParams.get("category") || "";
+  const brand = searchParams.get("brand") || "";
+  const sort = searchParams.get("sort") || "newest";
 
   const [data, setData] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -24,7 +27,7 @@ export function useInventory() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [page, currentLimit, search, status, sort]);
+  }, [page, currentLimit, search, stock, unit, category, brand, sort]);
 
   async function fetchInventory() {
     try {
@@ -36,12 +39,17 @@ export function useInventory() {
       params.set("limit", String(currentLimit));
 
       if (search) params.set("search", search);
-      if (status) params.set("status", status);
+      if (stock) params.set("stock", stock);
+
+      if (unit) params.set("unit", unit);
+
+      if (category) params.set("category", category);
+
+      if (brand) params.set("brand", brand);
+
       if (sort) params.set("sort", sort);
 
-      const res = await fetch(
-        `/api/inventory?${params.toString()}`
-      );
+      const res = await fetch(`/api/inventory?${params.toString()}`);
 
       const json = await res.json();
 

@@ -16,26 +16,23 @@ import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
 export default function PaymentPage() {
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page") || 1);
-
   const currentLimit = Number(searchParams.get("limit") || 10);
 
   const search = searchParams.get("search") || "";
-
+  const paymentStatus = searchParams.get("paymentStatus") || "";
+  const paymentMethod = searchParams.get("paymentMethod") || "";
   const status = searchParams.get("status") || "";
-
-  const method = searchParams.get("method") || "";
-
+  const deliveryStatus = searchParams.get("deliveryStatus") || "";
   const sort = searchParams.get("sort") || "newest";
 
   const [selected, setSelected] = useState<any>(null);
-
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // FILTER
   const filterFields: FilterField[] = useMemo(
     () => [
       {
-        key: "status",
+        key: "paymentStatus",
 
         label: "Payment Status",
 
@@ -63,7 +60,7 @@ export default function PaymentPage() {
       },
 
       {
-        key: "method",
+        key: "paymentMethod",
 
         label: "Payment Method",
 
@@ -86,31 +83,102 @@ export default function PaymentPage() {
       },
 
       {
+        key: "deliveryStatus",
+
+        label: "Delivery Status",
+
+        options: [
+          {
+            label: "Pending",
+            value: "PENDING",
+          },
+
+          {
+            label: "Packed",
+            value: "PACKED",
+          },
+
+          {
+            label: "Shipped",
+            value: "SHIPPED",
+          },
+
+          {
+            label: "Out For Delivery",
+            value: "OUT_FOR_DELIVERY",
+          },
+
+          {
+            label: "Delivered",
+            value: "DELIVERED",
+          },
+
+          {
+            label: "Failed",
+            value: "FAILED",
+          },
+        ],
+      },
+
+      {
+        key: "status",
+      
+        label: "Order Status",
+      
+        options: [
+          {
+            label: "Pending",
+            value: "PENDING",
+          },
+      
+          {
+            label: "Confirmed",
+            value: "CONFIRMED",
+          },
+      
+          {
+            label: "Packed",
+            value: "PACKED",
+          },
+      
+          {
+            label: "Completed",
+            value: "COMPLETED",
+          },
+      
+          {
+            label: "Cancelled",
+            value: "CANCELLED",
+          },
+        ],
+      },
+
+      {
         key: "sort",
 
-        label: "Sort By",
+        label: "Sort",
 
         isSortEngine: true,
 
         options: [
           {
-            label: "Newest First",
+            label: "Newest",
             value: "newest",
           },
 
           {
-            label: "Oldest First",
+            label: "Oldest",
             value: "oldest",
           },
 
           {
             label: "Highest Amount",
-            value: "amount_desc",
+            value: "highest",
           },
 
           {
             label: "Lowest Amount",
-            value: "amount_asc",
+            value: "lowest",
           },
         ],
       },
@@ -121,8 +189,10 @@ export default function PaymentPage() {
   // FETCH
   const { data, meta, loading, refetch } = usePayments({
     search,
+    paymentStatus,
+    paymentMethod,
     status,
-    method,
+    deliveryStatus,
     sort,
     page,
     limit: currentLimit,
@@ -221,7 +291,7 @@ export default function PaymentPage() {
       <SearchFilterBar
         fields={filterFields}
         globalSearchKey="search"
-        globalSearchPlaceholder="Search by payment ID, Razorpay order ID or payment ID..."
+        globalSearchPlaceholder="Search by order ID, Razorpay ID, phone or shipping name..."
       />
 
       {/* BULK ACTIONS */}

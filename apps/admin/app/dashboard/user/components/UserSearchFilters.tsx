@@ -39,18 +39,20 @@ import SearchFilterBar, {
       isSortEngine: true,
       options: [
         {
-          label: "Username A-Z",
-          value: "name_asc",
-        },
-  
-        {
-          label: "Newest First",
+          label: "Newest",
           value: "newest",
         },
-  
         {
-          label: "Oldest First",
+          label: "Oldest",
           value: "oldest",
+        },
+        {
+          label: "UserName A → Z",
+          value: "name_asc",
+        },
+        {
+          label: "Username Z → A",
+          value: "name_desc",
         },
       ],
     },

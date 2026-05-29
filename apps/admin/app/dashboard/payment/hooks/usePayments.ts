@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 
 interface UsePaymentsParams {
   search: string;
+  paymentStatus: string;
+  paymentMethod: string;
   status: string;
-  method: string;
+  deliveryStatus: string;
   sort: string;
   page: number;
   limit: number;
@@ -100,8 +102,10 @@ interface PaymentMeta {
 
 export function usePayments({
   search,
+  paymentStatus,
+  paymentMethod,
   status,
-  method,
+  deliveryStatus,
   sort,
   page,
   limit,
@@ -128,12 +132,20 @@ export function usePayments({
         params.set("search", search);
       }
 
+      if (paymentStatus) {
+        params.set("paymentStatus", paymentStatus);
+      }
+      
+      if (paymentMethod) {
+        params.set("paymentMethod", paymentMethod);
+      }
+      
       if (status) {
         params.set("status", status);
       }
-
-      if (method) {
-        params.set("method", method);
+      
+      if (deliveryStatus) {
+        params.set("deliveryStatus", deliveryStatus);
       }
 
       if (sort) {
@@ -193,7 +205,16 @@ export function usePayments({
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [search, status, method, sort, page, limit]);
+  }, [
+    search,
+    paymentStatus,
+    paymentMethod,
+    status,
+    deliveryStatus,
+    sort,
+    page,
+    limit,
+  ]);
 
   return {
     data,
