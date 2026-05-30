@@ -96,7 +96,10 @@ export async function GET(req: Request) {
           },
 
           orders: {
-            select: { total: true },
+            select: {
+              total: true,
+              paymentStatus: true,
+            },
           },
         },
       }),
@@ -107,11 +110,27 @@ export async function GET(req: Request) {
 
     // ================= TRANSFORM =================
     const formattedUsers = users.map((u) => {
-      const totalSpend = u.orders.reduce(
-        (sum, o) => sum + Number(o.total || 0),
+      const paidOrders = u.orders.filter(
+        (o) => o.paymentStatus === "PAID"
+      );
+    
+      const pendingOrders = u.orders.filter(
+        (o) => o.paymentStatus === "PENDING"
+      );
+    
+      const refundedOrders = u.orders.filter(
+        (o) => o.paymentStatus === "REFUNDED"
+      );
+    
+      const failedOrders = u.orders.filter(
+        (o) => o.paymentStatus === "FAILED"
+      );
+    
+      const totalSpend = paidOrders.reduce(
+        (sum, o) => sum + Number(o.total),
         0
       );
-
+    
       return {
         id: u.id,
         username: u.username,
@@ -119,8 +138,14 @@ export async function GET(req: Request) {
         role: u.role,
         isBlocked: u.isBlocked,
         createdAt: u.createdAt,
-
+    
         totalOrders: u._count.orders,
+    
+        paidOrders: paidOrders.length,
+        pendingOrders: pendingOrders.length,
+        refundedOrders: refundedOrders.length,
+        failedOrders: failedOrders.length,
+    
         totalSpend,
       };
     });

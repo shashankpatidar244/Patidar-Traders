@@ -9,8 +9,15 @@ type UserType = {
   phone: string;
   role: "ADMIN" | "USER";
   isBlocked: boolean;
+
   totalOrders: number;
+  paidOrders: number;
+  pendingOrders: number;
+  refundedOrders: number;
+  failedOrders: number;
+
   totalSpend: number;
+
   createdAt: string;
 };
 
@@ -83,13 +90,12 @@ export default function UserRow({
       {/* ROLE */}
       <td className="p-4 whitespace-nowrap">
         <span
-          className={`flex items-center gap-1 w-fit px-2.5 py-1 text-xs font-medium rounded-full ${
+          className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${
             user.role === "ADMIN"
               ? "bg-purple-100 text-purple-700"
               : "bg-gray-100 text-gray-700"
           }`}
         >
-          {user.role === "ADMIN"}
           {user.role}
         </span>
       </td>
@@ -97,27 +103,42 @@ export default function UserRow({
       {/* STATUS */}
       <td className="p-4 whitespace-nowrap">
         <span
-          className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
             user.isBlocked
-              ? "bg-red-100 text-red-600"
-              : "bg-green-100 text-green-600"
+              ? "bg-red-50 text-red-700 border border-red-200"
+              : "bg-green-50 text-green-700 border border-green-200"
           }`}
         >
+          <span className=" rounded-full bg-current" />
           {user.isBlocked ? "Blocked" : "Active"}
         </span>
       </td>
 
       {/* ORDERS */}
-      <td className="p-4 text-gray-700 font-medium whitespace-nowrap">
-        {user.totalOrders}
+      <td className="p-4 whitespace-nowrap">
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">
+            {user.totalOrders}
+          </span>
+
+          <span className="text-xs text-green-600 whitespace-nowrap">
+            {user.paidOrders} Paid Orders
+          </span>
+        </div>
       </td>
 
       {/* SPEND */}
       <td
-        className="p-4 font-semibold text-gray-900 whitespace-nowrap"
+        className="p-4 whitespace-nowrap"
         title={`₹${user.totalSpend.toLocaleString("en-IN")}`}
       >
-        {formatCurrency(user.totalSpend)}
+        <div className="flex flex-col">
+          <span className="font-bold text-green-700">
+            {formatCurrency(user.totalSpend)}
+          </span>
+
+          <span className="text-[10px] text-gray-400">Revenue Generated</span>
+        </div>
       </td>
 
       {/* DATE */}

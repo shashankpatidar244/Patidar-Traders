@@ -1,13 +1,37 @@
-import { User2, Phone } from "lucide-react";
+import { User2, Phone, ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function OrderCustomer({ user }: any) {
+  const router = useRouter();
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       {/* HEADER */}
       <div className="px-5 py-4 border-b bg-gradient-to-r from-gray-50 to-white">
-        <h2 className="text-sm font-semibold tracking-wide text-gray-500">
-          CUSTOMER DETAILS
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold tracking-wide text-gray-500">
+            CUSTOMER DETAILS
+          </h2>
+
+          {user?.id && (
+            <button
+            onClick={() => router.push(`/dashboard/user/${user.id}`)}
+            className="
+              flex items-center gap-1.5
+              px-3 py-1.5
+              text-xs font-medium
+              rounded-lg
+              bg-blue-600
+              text-white
+              hover:bg-blue-700
+              transition
+            "
+          >
+            <ExternalLink size={14} />
+            View User
+          </button>
+          )}
+        </div>
       </div>
 
       {/* BODY */}

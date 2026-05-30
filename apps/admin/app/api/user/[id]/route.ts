@@ -1,44 +1,73 @@
-import { prisma } from "@repo/database"
-import { NextResponse } from "next/server"
+import { prisma } from "@repo/database";
+import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> } // ✅ FIX
 ) {
   try {
-    const { id } = await context.params // ✅ IMPORTANT
-
+    const { id } = await context.params; // ✅ IMPORTANT
 
     if (!id || isNaN(Number(id))) {
-      return NextResponse.json(
-        { error: "Invalid user ID" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: Number(id) },
-      include: {
-        orders: true,
-        addresses: true,
-        cartItem: true,
-        wishlistItems: true,
+      where: {
+        id: Number(id),
       },
-    })
+      include: {
+        orders: {
+          include: {
+            items: {
+              include: {
+                product: {
+                  include: {
+                    images: true,
+                  },
+                },
+                variant: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+
+        addresses: true,
+
+        cartItem: {
+          include: {
+            product: {
+              include: {
+                images: true,
+              },
+            },
+            variant: true,
+          },
+        },
+
+        wishlistItems: {
+          include: {
+            product: {
+              include: {
+                images: true,
+              },
+            },
+            variant: true,
+          },
+        },
+      },
+    });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user)
+    return NextResponse.json(user);
   } catch (err) {
-    console.error(err)
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    )
+    console.error(err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

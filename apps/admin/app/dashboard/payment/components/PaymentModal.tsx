@@ -1,6 +1,8 @@
 "use client";
 
 import StatusBadge from "./StatusBadge";
+import { useRouter } from "next/navigation";
+import { CreditCard } from "lucide-react";
 
 interface PaymentModalProps {
   payment: any;
@@ -29,6 +31,7 @@ export default function PaymentModal({
     hour: "2-digit",
     minute: "2-digit",
   });
+  const router = useRouter();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -41,23 +44,65 @@ export default function PaymentModal({
       {/* MODAL */}
       <div className="relative z-50 w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         {/* HEADER */}
-        <div className="flex items-center justify-between border-b px-6 py-5">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Payment #{payment.id}
-            </h2>
+        <div className="border-b bg-gradient-to-r from-gray-50 to-white px-6 py-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            {/* Left */}
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
+                  <CreditCard className="h-6 w-6 text-white" />
+                </div>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Order payment details & actions
-            </p>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Payment #{payment.id}
+                  </h2>
+
+                  <p className="text-sm text-gray-500">
+                    Order payment details & actions
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-2">
+              {/* Order Button */}
+              <button
+                onClick={() => router.push(`/dashboard/orders/${payment.id}`)}
+                className="
+        inline-flex items-center gap-2
+        px-4 py-2
+        rounded-xl
+        bg-blue-600
+        hover:bg-blue-700
+        text-white
+        text-sm
+        font-medium
+        transition
+      "
+              >
+                📦 View Order
+              </button>
+
+              {/* Close */}
+              <button
+                onClick={onClose}
+                className="
+                          h-10 w-10
+                          rounded-xl
+                          border
+                          bg-white
+                          hover:bg-red-50
+                          hover:text-red-600
+                          flex items-center justify-center
+                          transition
+                        "
+              >
+                ✕
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-black transition"
-          >
-            ✕
-          </button>
         </div>
 
         {/* CONTENT */}
@@ -150,9 +195,9 @@ export default function PaymentModal({
 
                   <p className="font-medium leading-relaxed">
                     {payment.shippingLine1}
-                    {payment.shippingLine2 && `, ${payment.shippingLine2}`},{" "}
-                    {payment.shippingCity}, {payment.shippingState} -{" "}
-                    {payment.shippingPincode}
+                    {payment.shippingLine2 &&
+                      `, ${payment.shippingLine2}`}, {payment.shippingCity},{" "}
+                    {payment.shippingState} - {payment.shippingPincode}
                   </p>
                 </div>
               </div>
