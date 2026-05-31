@@ -1,7 +1,6 @@
 import UserTable from "./components/UserTable";
 import UserSearchFilters from "./components/UserSearchFilters";
-import Pagination from "../components/Pagination";
-
+import Pagination from "../../components/shared/Pagination";
 
 interface PageProps {
   searchParams: Promise<{
@@ -54,7 +53,7 @@ export default async function Page({ searchParams }: PageProps) {
     );
   }
 
-  const users = data.data || []
+  const users = data.data || [];
 
   const totalPages = data.totalPages || 1;
 

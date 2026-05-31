@@ -1,10 +1,10 @@
 import { prisma } from "@repo/database";
 import ProductTable from "./components/ProductTable";
 import Link from "next/link";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/shared/Pagination";
 import SearchFilterBar, {
   FilterField,
-} from "../components/SearchFilterBar";
+} from "../../components/shared/SearchFilterBar";
 
 
 export default async function ProductsPage({

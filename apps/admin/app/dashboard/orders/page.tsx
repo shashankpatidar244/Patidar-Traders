@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import OrderTable from "./components/OrderTable";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/shared/Pagination";
 import BulkActions from "./components/BulkActions";
-import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
+import SearchFilterBar, {
+  FilterField,
+} from "../../components/shared/SearchFilterBar";
 
 export default function OrdersPage() {
   const searchParams = useSearchParams();
@@ -271,7 +273,7 @@ export default function OrdersPage() {
       if (from) {
         params.set("from", from);
       }
-      
+
       if (to) {
         params.set("to", to);
       }

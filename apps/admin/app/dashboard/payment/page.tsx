@@ -8,10 +8,12 @@ import { usePayments } from "./hooks/usePayments";
 import PaymentTable from "./components/PaymentTable";
 import PaymentStats from "./components/PaymentStats";
 import PaymentModal from "./components/PaymentModal";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/shared/Pagination";
 import { TableSkeleton } from "./components/Skeleton";
 import BulkActions from "./components/BulkActions";
-import SearchFilterBar, { FilterField } from "../components/SearchFilterBar";
+import SearchFilterBar, {
+  FilterField,
+} from "../../components/shared/SearchFilterBar";
 
 export default function PaymentPage() {
   const searchParams = useSearchParams();
@@ -25,7 +27,11 @@ export default function PaymentPage() {
   const deliveryStatus = searchParams.get("deliveryStatus") || "";
   const sort = searchParams.get("sort") || "newest";
 
-  const [selected, setSelected] = useState<any>(null);
+  type SelectedPayment = {
+    id: number;
+  };
+
+  const [selected, setSelected] = useState<SelectedPayment | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // FILTER
@@ -122,30 +128,30 @@ export default function PaymentPage() {
 
       {
         key: "status",
-      
+
         label: "Order Status",
-      
+
         options: [
           {
             label: "Pending",
             value: "PENDING",
           },
-      
+
           {
             label: "Confirmed",
             value: "CONFIRMED",
           },
-      
+
           {
             label: "Packed",
             value: "PACKED",
           },
-      
+
           {
             label: "Completed",
             value: "COMPLETED",
           },
-      
+
           {
             label: "Cancelled",
             value: "CANCELLED",
@@ -297,6 +303,8 @@ export default function PaymentPage() {
       {/* BULK ACTIONS */}
       <BulkActions
         selectedIds={selectedIds}
+        payments={data ?? []}
+        refresh={refetch}
         onBulkAction={handleBulkAction}
         clearSelection={() => setSelectedIds([])}
       />

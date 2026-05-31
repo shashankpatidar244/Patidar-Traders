@@ -1,44 +1,117 @@
 import { prisma } from "@repo/database"
 import { NextResponse } from "next/server"
 
+enum UserBulkAction {
+  BLOCK = "BLOCK",
+  UNBLOCK = "UNBLOCK",
+}
+
+interface UndoUserState {
+  id: number
+  isBlocked: boolean
+}
+
 export async function PATCH(req: Request) {
   try {
-    const { userIds, action } = await req.json()
+    const body = await req.json()
 
-    if (!userIds?.length) {
+    if (body.undo) {
+      const users =
+        body.users as UndoUserState[]
+
+      await prisma.$transaction(
+        users.map((user) =>
+          prisma.user.update({
+            where: {
+              id: user.id,
+            },
+            data: {
+              isBlocked:
+                user.isBlocked,
+            },
+          })
+        )
+      )
+
+      return NextResponse.json({
+        success: true,
+      })
+    }
+
+    const {
+      userIds,
+      action,
+    }: {
+      userIds: number[]
+      action: UserBulkAction
+    } = body
+
+    if (
+      !Array.isArray(userIds) ||
+      !userIds.length
+    ) {
       return NextResponse.json(
-        { error: "No users selected" },
-        { status: 400 }
+        {
+          error:
+            "No users selected",
+        },
+        {
+          status: 400,
+        }
       )
     }
 
-    let data: any = {}
+    let isBlocked: boolean
 
-    if (action === "BLOCK") data.isBlocked = true
-    if (action === "UNBLOCK") data.isBlocked = false
+    switch (action) {
+      case UserBulkAction.BLOCK:
+        isBlocked = true
+        break
 
-    if (!data) {
-      return NextResponse.json(
-        { error: "Invalid action" },
-        { status: 400 }
-      )
+      case UserBulkAction.UNBLOCK:
+        isBlocked = false
+        break
+
+      default:
+        return NextResponse.json(
+          {
+            error:
+              "Invalid action",
+          },
+          {
+            status: 400,
+          }
+        )
     }
 
     await prisma.user.updateMany({
       where: {
-        id: { in: userIds },
-        role: { not: "ADMIN" }, // 🔒 protect admins
+        id: {
+          in: userIds,
+        },
+        role: {
+          not: "ADMIN",
+        },
       },
-      data,
+      data: {
+        isBlocked,
+      },
     })
 
-    return NextResponse.json({ success: true })
-  } catch (err) {
-    console.error(err)
+    return NextResponse.json({
+      success: true,
+    })
+  } catch (error) {
+    console.error(error)
 
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+      {
+        error:
+          "Internal Server Error",
+      },
+      {
+        status: 500,
+      }
     )
   }
 }

@@ -1,6 +1,15 @@
 import { prisma } from "@repo/database";
 
 import { NextResponse } from "next/server";
+const allowedActions = [
+  "CONFIRM",
+  "PACK",
+  "SHIP",
+  "OUT_FOR_DELIVERY",
+  "DELIVER",
+  "COMPLETE",
+  "CANCEL",
+];
 
 export async function PATCH(req: Request) {
   try {
@@ -18,6 +27,7 @@ export async function PATCH(req: Request) {
       );
     }
 
+    
     const orders = await prisma.order.findMany({
       where: {
         id: {

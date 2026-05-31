@@ -1,15 +1,68 @@
-import { prisma } from "@repo/database"
-import { NextResponse } from "next/server"
+import { prisma } from "@repo/database";
+import { NextResponse } from "next/server";
 
-import {
-  PaymentStatus,
-} from "@prisma/client"
+import { PaymentStatus } from "@prisma/client";
+import { logAdminAction } from "../../../lib/adminLog";
 
-import { logAdminAction } from "../../../lib/adminLog"
+const allowedActions = ["MARK_PAID", "REFUND", "SET_PENDING", "FAIL"] as const;
+
+type BulkAction = (typeof allowedActions)[number];
+
+interface UndoPayment {
+  id: number;
+  paymentStatus: PaymentStatus;
+}
 
 export async function POST(req: Request) {
   try {
-    const { ids, action } = await req.json()
+    const body = await req.json();
+    const {
+      ids,
+      action,
+      undo,
+      previousStatuses,
+    }: {
+      ids?: number[];
+      action?: BulkAction;
+      undo?: boolean;
+      previousStatuses?: UndoPayment[];
+    } = body;
+
+    // UNDO PAYMENT STATUS CHANGES
+    if (undo) {
+      if (
+        !previousStatuses ||
+        !Array.isArray(previousStatuses) ||
+        previousStatuses.length === 0
+      ) {
+        return NextResponse.json(
+          {
+            error: "Missing previous statuses",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      await prisma.$transaction(
+        previousStatuses.map((payment) =>
+          prisma.order.update({
+            where: {
+              id: payment.id,
+            },
+            data: {
+              paymentStatus: payment.paymentStatus,
+            },
+          })
+        )
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "Undo completed",
+      });
+    }
 
     // VALIDATION
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -20,27 +73,29 @@ export async function POST(req: Request) {
         {
           status: 400,
         }
-      )
+      );
     }
 
-    let status: PaymentStatus = "PENDING"
+    if (!action || !allowedActions.includes(action)) {
+      return NextResponse.json(
+        {
+          error: "Invalid action",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // ACTION MAPPING
-    if (action === "MARK_PAID") {
-      status = "PAID"
-    }
+    const statusMap: Record<BulkAction, PaymentStatus> = {
+      MARK_PAID: "PAID",
+      REFUND: "REFUNDED",
+      SET_PENDING: "PENDING",
+      FAIL: "FAILED",
+    };
 
-    if (action === "REFUND") {
-      status = "REFUNDED"
-    }
-
-    if (action === "FAIL") {
-      status = "FAILED"
-    }
-
-    if (action === "SET_PENDING") {
-      status = "PENDING"
-    }
+    const status = statusMap[action];
 
     // UPDATE ORDERS
     await prisma.order.updateMany({
@@ -59,7 +114,7 @@ export async function POST(req: Request) {
             }
           : {}),
       },
-    })
+    });
 
     // ADMIN LOGS
     await Promise.all(
@@ -70,7 +125,7 @@ export async function POST(req: Request) {
           entityId: id,
         })
       )
-    )
+    );
 
     return NextResponse.json({
       success: true,
@@ -78,9 +133,9 @@ export async function POST(req: Request) {
       updated: ids.length,
 
       status,
-    })
+    });
   } catch (error) {
-    console.error(error)
+    console.error(error);
 
     return NextResponse.json(
       {
@@ -89,6 +144,6 @@ export async function POST(req: Request) {
       {
         status: 500,
       }
-    )
+    );
   }
 }

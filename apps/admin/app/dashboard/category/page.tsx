@@ -5,10 +5,10 @@ import { useSearchParams } from "next/navigation";
 import CategoryTable from "./components/CategoryTable";
 import CategoryForm from "./components/CategoryForm";
 import DeleteModal from "./components/DeleteModal";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/shared/Pagination";
 import SearchFilterBar, {
   FilterField,
-} from "../components/SearchFilterBar";
+} from "../../components/shared/SearchFilterBar";
 
 export interface Category {
   id: number;

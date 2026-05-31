@@ -7,8 +7,8 @@ import InventoryTable from "./InventoryTable";
 import SummaryCards from "./SummaryCards";
 import BulkActions from "./BulkActions";
 import { useInventory } from "../hooks/useInventory";
-import Pagination from "../../components/Pagination";
-import SearchFilterBar, { FilterField } from "../../components/SearchFilterBar";
+import Pagination from "../../../components/shared/Pagination";
+import SearchFilterBar, { FilterField } from "../../../components/shared/SearchFilterBar";
 export default function InventoryClientPage({
   categories,
   brands,
