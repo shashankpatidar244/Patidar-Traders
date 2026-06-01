@@ -1,171 +1,363 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import toast, { Toast } from "react-hot-toast"
+import { memo, useCallback, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import type { Toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
-type Variant = {
-  id: number
-  stock: number
-  mrp?: number
-  sellingPrice?: number
-  value: string
-  unit: string
-  product: {
-    name: string
-  }
+import ConfirmModal from "../../../components/shared/ConfirmModal";
+import UndoToast from "../../../components/shared/UndoToast";
+import { exportCSV } from "../../../lib/exportCsv";
+
+interface Variant {
+  id: number;
+  stock: number;
+  mrp?: number;
+  sellingPrice?: number;
+  value: string;
+  unit: string;
+
+  product?: {
+    name: string;
+  };
 }
 
-export default function BulkActions({
-  selected,
-  data,
-  refresh,
-}: {
-  selected: number[]
-  data: Variant[]
-  refresh: () => void
-}) {
-  const [loading, setLoading] = useState(false)
-  const [value, setValue] = useState(1)
+interface BulkActionsProps {
+  selected: number[];
+  data: Variant[];
+  refresh: () => void;
+}
 
-  async function bulk(action: "ADD" | "REDUCE" | "SET") {
-    if (!value) return toast.error("Enter value")
+enum InventoryBulkAction {
+  ADD = "ADD",
+  REDUCE = "REDUCE",
+  SET = "SET",
+}
 
-    // 🔥 STORE OLD VALUES FOR UNDO
-    const previous = data
-      .filter((v) => selected.includes(v.id))
-      .map((v) => ({
-        id: v.id,
-        stock: v.stock,
-      }))
+interface SelectedVariant extends Variant {
+  productName: string;
+}
 
-    setLoading(true)
+function BulkActions({ selected, data, refresh }: BulkActionsProps) {
+  const [loading, setLoading] = useState(false);
+  const [value, setValue] = useState<number>(1);
+  const router = useRouter();
 
-    try {
-      const res = await fetch("/api/inventory/bulk", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          variantIds: selected,
-          action,
-          value,
-        }),
-      })
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] =
+    useState<InventoryBulkAction | null>(null);
 
-      if (!res.ok) throw new Error()
+  const selectedVariants = useMemo(() => {
+    return data.filter((variant) => selected.includes(variant.id));
+  }, [data, selected]);
 
-      refresh()
-
-      // 🔥 UNDO TOAST
-      toast(
-        (t: Toast) => (
-          <div className="flex items-center gap-4">
-            <span>Stock updated</span>
-      
-            <button
-              onClick={async () => {
-                toast.dismiss(t.id)
-      
-                await fetch("/api/inventory/bulk/undo", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ previous }),
-                })
-      
-                refresh()
-                toast.success("Undo successful")
-              }}
-              className="px-2 py-1 text-xs bg-gray-800 text-white rounded"
-            >
-              Undo
-            </button>
-          </div>
-        ),
-        { duration: 5000 }
-      )
-    } catch {
-      toast.error("Failed")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function exportCSV() {
-    const selectedData = data.filter((v) => selected.includes(v.id))
-
-    const rows = selectedData.map((v) => {
-      const discount =
-        v.mrp && v.sellingPrice && v.mrp > v.sellingPrice
-          ? Math.round(((v.mrp - v.sellingPrice) / v.mrp) * 100)
-          : 0
-
-      return {
-        Product: v.product.name,
-        Variant: `${v.value} ${v.unit}`,
-        Stock: v.stock,
-        MRP: v.mrp ?? 0,
-        SellingPrice: v.sellingPrice ?? 0,
-        Discount: `${discount}%`,
+  const runAction = useCallback(
+    async (action: InventoryBulkAction) => {
+      if (Number.isNaN(value) || value < 1) {
+        toast.error("Enter a valid value");
+        return;
       }
-    })
 
-    const csv =
-      "Product,Variant,Stock,MRP,SellingPrice,Discount\n" +
-      rows.map((r) => Object.values(r).join(",")).join("\n")
+      const previousState = selectedVariants.map((variant) => ({
+        id: variant.id,
+        stock: variant.stock,
+      }));
 
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
+      try {
+        setLoading(true);
 
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "inventory.csv"
-    a.click()
+        toast.loading("Updating inventory...", {
+          id: "inventory-bulk",
+        });
+
+        const response = await fetch("/api/inventory/bulk", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            variantIds: selected,
+            action,
+            value,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error();
+        }
+
+        await refresh();
+
+        toast.success(`${selected.length} inventory items updated`, {
+          id: "inventory-bulk",
+        });
+        router.refresh();
+
+        const undoExpiresAt = Date.now() + 60000;
+
+        toast.custom(
+          (t: Toast) => (
+            <UndoToast
+              message={`Inventory ${action.toLowerCase()} applied successfully`}
+              expiresAt={undoExpiresAt}
+              onExpire={() => {
+                toast.remove(t.id);
+                router.refresh();
+              }}
+              onUndo={async () => {
+                toast.remove(t.id);
+
+                try {
+                  toast.loading("Reverting inventory...", {
+                    id: "undo-inventory",
+                  });
+
+                  const undoRes = await fetch("/api/inventory/bulk/undo", {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      previous: previousState,
+                    }),
+                  });
+
+                  if (!undoRes.ok) {
+                    throw new Error();
+                  }
+
+                  await refresh();
+
+                  toast.success("Inventory restored", {
+                    id: "undo-inventory",
+                  });
+                  router.refresh();
+                } catch {
+                  toast.error("Undo failed", {
+                    id: "undo-inventory",
+                  });
+                }
+              }}
+            />
+          ),
+          {
+            duration: 60000,
+          }
+        );
+      } catch {
+        toast.error("Failed to update inventory", {
+          id: "inventory-bulk",
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [value, selected, selectedVariants, refresh, router]
+  );
+
+  const exportInventory = useCallback(() => {
+    const rows = selectedVariants.map((variant) => ({
+      Product: variant.product?.name ?? "",
+      Variant: `${variant.value} ${variant.unit}`,
+      Stock: variant.stock,
+      MRP: variant.mrp ?? 0,
+      SellingPrice: variant.sellingPrice ?? 0,
+    }));
+
+    exportCSV(rows, "inventory.csv");
+
+    toast.success("Inventory exported");
+  }, [selectedVariants]);
+
+  if (!selected.length) {
+    return null;
   }
-
-  if (!selected.length) return null
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 bg-white border rounded-xl p-4 shadow-sm">
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium">
-          {selected.length} selected
-        </span>
-
-        <input
-          type="number"
-          min={1}
-          value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
-          className="w-20 border rounded-md px-2 py-1 text-center"
-        />
-
-        <button
-          onClick={() => bulk("ADD")}
-          className="px-3 py-1.5 bg-green-100 text-green-700 rounded"
+    <>
+      <div
+        className="
+        sticky
+        bottom-3
+        lg:top-4
+        z-40
+        
+        rounded-2xl
+        border
+        border-white/30
+        
+        bg-white/70
+        backdrop-blur-xl
+        
+        shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+        
+        px-5
+        py-4
+        "
+      >
+        <div
+          className="
+            flex
+            flex-col
+            gap-4
+            lg:flex-row
+            lg:items-center
+            lg:justify-between
+          "
         >
-          + Add
-        </button>
+          <div className="flex items-center gap-3">
+            <div
+              className="
+                flex
+                h-10
+                w-10
+                items-center
+                justify-center
+                rounded-full
+                bg-blue-100
+              "
+            >
+              📦
+            </div>
 
-        <button
-          onClick={() => bulk("REDUCE")}
-          className="px-3 py-1.5 bg-red-100 text-red-700 rounded"
-        >
-          - Reduce
-        </button>
+            <div>
+              <div className="font-semibold text-gray-900">
+                {selected.length} Items Selected
+              </div>
 
-        <button
-          onClick={() => bulk("SET")}
-          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded"
-        >
-          Set
-        </button>
+              <div className="text-xs text-gray-500">Manage stock in bulk</div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              value={value}
+              disabled={loading}
+              onChange={(e) => setValue(Number(e.target.value))}
+              aria-label="Stock value"
+              className="
+                w-24
+                rounded-xl
+                border
+                px-3
+                py-2
+                text-center
+                text-sm
+                focus:outline-none
+                focus:ring-2
+                focus:ring-blue-500
+              "
+            />
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => runAction(InventoryBulkAction.ADD)}
+              className="
+                rounded-xl
+                bg-green-50
+                px-4
+                py-2
+                text-sm
+                font-medium
+                text-green-700
+                hover:bg-green-100
+                disabled:opacity-50
+              "
+            >
+              {loading ? "Loading..." : "➕ Add"}
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                setPendingAction(InventoryBulkAction.REDUCE);
+                setConfirmOpen(true);
+              }}
+              className="
+                rounded-xl
+                bg-red-50
+                px-4
+                py-2
+                text-sm
+                font-medium
+                text-red-700
+                hover:bg-red-100
+                disabled:opacity-50
+              "
+            >
+              {loading ? "Loading..." : "➖ Reduce"}
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                setPendingAction(InventoryBulkAction.SET);
+                setConfirmOpen(true);
+              }}
+              className="
+                rounded-xl
+                bg-blue-50
+                px-4
+                py-2
+                text-sm
+                font-medium
+                text-blue-700
+                hover:bg-blue-100
+                disabled:opacity-50
+              "
+            >
+              {loading ? "Loading..." : "🎯 Set"}
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={exportInventory}
+              className="
+                rounded-xl
+                bg-gray-900
+                px-4
+                py-2
+                text-sm
+                font-medium
+                text-white
+                hover:bg-black
+                disabled:opacity-50
+              "
+            >
+              📄 Export CSV
+            </button>
+          </div>
+        </div>
       </div>
 
-      <button
-        onClick={exportCSV}
-        className="px-3 py-1.5 bg-gray-800 text-white rounded"
-      >
-        Export CSV
-      </button>
-    </div>
-  )
+      <ConfirmModal
+        open={confirmOpen}
+        title="Confirm Stock Update"
+        description={`Apply ${pendingAction} stock action to ${selected.length} selected variants?`}
+        confirmText="Continue"
+        loading={loading}
+        onClose={() => {
+          setConfirmOpen(false);
+          setPendingAction(null);
+        }}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+
+          if (pendingAction) {
+            await runAction(pendingAction);
+          }
+
+          setPendingAction(null);
+        }}
+      />
+    </>
+  );
 }
+
+export default memo(BulkActions);

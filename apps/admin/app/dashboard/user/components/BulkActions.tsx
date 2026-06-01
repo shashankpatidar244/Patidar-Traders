@@ -70,8 +70,7 @@ export default function BulkActions({ selected, users }: BulkActionsProps) {
           }),
         });
 
-        const UNDO_TIMEOUT = 60000;
-        const undoExpiresAt = Date.now() + UNDO_TIMEOUT;
+        const undoExpiresAt = Date.now() + 60000;
 
         if (!response.ok) {
           throw new Error();
@@ -80,17 +79,19 @@ export default function BulkActions({ selected, users }: BulkActionsProps) {
         toast.success(`${selected.length} users updated`, {
           id: "user-bulk",
         });
+        router.refresh();
 
         toast.custom(
           (t: Toast) => (
             <UndoToast
-              message="User status updated"
+            message={`Bulk users ${action.toLowerCase()}ed updated successfully`}
               expiresAt={undoExpiresAt}
               onExpire={() => {
-                toast.dismiss(t.id);  
+                toast.remove(t.id);
+                router.refresh();
               }}
               onUndo={async () => {
-                toast.dismiss(t.id);
+                toast.remove(t.id);
 
                 try {
                   toast.loading("Reverting changes...", {
@@ -116,7 +117,7 @@ export default function BulkActions({ selected, users }: BulkActionsProps) {
                     id: "undo-user",
                   });
 
-                  window.location.reload();
+                  router.refresh();
                 } catch {
                   toast.error("Undo failed", {
                     id: "undo-user",
@@ -135,7 +136,7 @@ export default function BulkActions({ selected, users }: BulkActionsProps) {
         setLoading(false);
       }
     },
-    [selected, selectedUsers]
+    [selected, selectedUsers, router]
   );
 
   const exportUsers = useCallback(() => {

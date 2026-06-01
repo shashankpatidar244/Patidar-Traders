@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import BulkActions from "./BulkActions";
+import BulkActions, { ProductBulkAction } from "./BulkActions";
 import ProductRow from "./ProductRow";
 import ProductModal from "./ProductModal";
 import { useProducts, Product } from "../hooks/useProducts";
@@ -27,16 +27,18 @@ export default function ProductTable() {
     }
   }
 
-  async function handleBulkAction(action: string) {
+  async function handleBulkAction(action: ProductBulkAction) {
     if (!selected.length) return;
-
-    if (action === "delete") {
-      if (!confirm("Delete selected products?")) return;
-    }
 
     await fetch("/api/products/bulk", {
       method: "POST",
-      body: JSON.stringify({ ids: selected, action }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ids: selected,
+        action,
+      }),
     });
 
     setSelected([]);
@@ -49,7 +51,11 @@ export default function ProductTable() {
 
   return (
     <div className="space-y-4">
-      <BulkActions selectedProducts={selected} onAction={handleBulkAction} />
+      <BulkActions
+        selectedProducts={selected}
+        products={products}
+        onAction={handleBulkAction}
+      />
 
       <div className="bg-white rounded-xl shadow-sm border">
         {/* TABLE SCROLL */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import InventoryTable from "./InventoryTable";
@@ -8,7 +8,9 @@ import SummaryCards from "./SummaryCards";
 import BulkActions from "./BulkActions";
 import { useInventory } from "../hooks/useInventory";
 import Pagination from "../../../components/shared/Pagination";
-import SearchFilterBar, { FilterField } from "../../../components/shared/SearchFilterBar";
+import SearchFilterBar, {
+  FilterField,
+} from "../../../components/shared/SearchFilterBar";
 export default function InventoryClientPage({
   categories,
   brands,
@@ -106,6 +108,17 @@ export default function InventoryClientPage({
     },
   ];
 
+  const variants = useMemo(() => {
+    return data.flatMap((product: any) =>
+      (product.variants || []).map((variant: any) => ({
+        ...variant,
+        product: {
+          name: product.name,
+        },
+      }))
+    );
+  }, [data]);
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* HEADER */}
@@ -132,8 +145,9 @@ export default function InventoryClientPage({
           globalSearchPlaceholder="Search by product or variant..."
           fields={filterFields}
         />
-        <BulkActions selected={selected} data={data} refresh={refresh} />
       </div>
+
+      <BulkActions selected={selected} data={variants} refresh={refresh} />
 
       {/* TABLE */}
       <div className="bg-white rounded-2xl overflow-hidden">
