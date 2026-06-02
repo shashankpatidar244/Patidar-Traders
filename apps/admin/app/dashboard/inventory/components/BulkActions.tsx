@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 
 import ConfirmModal from "../../../components/shared/ConfirmModal";
 import UndoToast from "../../../components/shared/UndoToast";
+import BulkActionBar from "../../../components/shared/BulkActionBar";
+import BulkActionButton from "../../../components/shared/BulkActionButton";
 import { exportCSV } from "../../../lib/exportCsv";
 
 interface Variant {
@@ -26,6 +28,7 @@ interface BulkActionsProps {
   selected: number[];
   data: Variant[];
   refresh: () => void;
+  clearSelection: () => void;
 }
 
 enum InventoryBulkAction {
@@ -38,7 +41,12 @@ interface SelectedVariant extends Variant {
   productName: string;
 }
 
-function BulkActions({ selected, data, refresh }: BulkActionsProps) {
+function BulkActions({
+  selected,
+  data,
+  refresh,
+  clearSelection,
+}: BulkActionsProps) {
   const [loading, setLoading] = useState(false);
   const [value, setValue] = useState<number>(1);
   const router = useRouter();
@@ -175,166 +183,72 @@ function BulkActions({ selected, data, refresh }: BulkActionsProps) {
 
   return (
     <>
-      <div
-        className="
-        sticky
-        bottom-3
-        lg:top-4
-        z-40
-        
-        rounded-2xl
-        border
-        border-white/30
-        
-        bg-white/70
-        backdrop-blur-xl
-        
-        shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-        
-        px-5
-        py-4
-        "
+      <BulkActionBar
+        icon="📦"
+        title="Items Selected"
+        subtitle="Apply bulk actions on selected items"
+        count={selected.length}
+        onClear={clearSelection}
       >
-        <div
+        <input
+          type="number"
+          min={1}
+          value={value}
+          disabled={loading}
+          onChange={(e) => setValue(Number(e.target.value))}
+          aria-label="Stock value"
           className="
-            flex
-            flex-col
-            gap-4
-            lg:flex-row
-            lg:items-center
-            lg:justify-between
+            w-24
+            rounded-xl
+            border
+            px-3
+            py-2
+            text-center
+            text-sm
+            focus:outline-none
+            focus:ring-2
+            focus:ring-blue-500
           "
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-full
-                bg-blue-100
-              "
-            >
-              📦
-            </div>
+        />
 
-            <div>
-              <div className="font-semibold text-gray-900">
-                {selected.length} Items Selected
-              </div>
+        <BulkActionButton
+          icon="➕"
+          label="Add"
+          color="green"
+          loading={loading}
+          onClick={() => runAction(InventoryBulkAction.ADD)}
+        />
 
-              <div className="text-xs text-gray-500">Manage stock in bulk</div>
-            </div>
-          </div>
+        <BulkActionButton
+          icon="➖"
+          label="Reduce"
+          color="red"
+          loading={loading}
+          onClick={() => {
+            setPendingAction(InventoryBulkAction.REDUCE);
+            setConfirmOpen(true);
+          }}
+        />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="number"
-              min={1}
-              value={value}
-              disabled={loading}
-              onChange={(e) => setValue(Number(e.target.value))}
-              aria-label="Stock value"
-              className="
-                w-24
-                rounded-xl
-                border
-                px-3
-                py-2
-                text-center
-                text-sm
-                focus:outline-none
-                focus:ring-2
-                focus:ring-blue-500
-              "
-            />
+        <BulkActionButton
+          icon="🎯"
+          label="Set"
+          color="blue"
+          loading={loading}
+          onClick={() => {
+            setPendingAction(InventoryBulkAction.SET);
+            setConfirmOpen(true);
+          }}
+        />
 
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => runAction(InventoryBulkAction.ADD)}
-              className="
-                rounded-xl
-                bg-green-50
-                px-4
-                py-2
-                text-sm
-                font-medium
-                text-green-700
-                hover:bg-green-100
-                disabled:opacity-50
-              "
-            >
-              {loading ? "Loading..." : "➕ Add"}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => {
-                setPendingAction(InventoryBulkAction.REDUCE);
-                setConfirmOpen(true);
-              }}
-              className="
-                rounded-xl
-                bg-red-50
-                px-4
-                py-2
-                text-sm
-                font-medium
-                text-red-700
-                hover:bg-red-100
-                disabled:opacity-50
-              "
-            >
-              {loading ? "Loading..." : "➖ Reduce"}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => {
-                setPendingAction(InventoryBulkAction.SET);
-                setConfirmOpen(true);
-              }}
-              className="
-                rounded-xl
-                bg-blue-50
-                px-4
-                py-2
-                text-sm
-                font-medium
-                text-blue-700
-                hover:bg-blue-100
-                disabled:opacity-50
-              "
-            >
-              {loading ? "Loading..." : "🎯 Set"}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={exportInventory}
-              className="
-                rounded-xl
-                bg-gray-900
-                px-4
-                py-2
-                text-sm
-                font-medium
-                text-white
-                hover:bg-black
-                disabled:opacity-50
-              "
-            >
-              📄 Export CSV
-            </button>
-          </div>
-        </div>
-      </div>
+        <BulkActionButton
+          icon="📄"
+          label="Export CSV"
+          color="gray"
+          loading={loading}
+          onClick={exportInventory}
+        />
+      </BulkActionBar>
 
       <ConfirmModal
         open={confirmOpen}

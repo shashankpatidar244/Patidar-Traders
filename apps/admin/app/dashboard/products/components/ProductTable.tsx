@@ -10,6 +10,7 @@ export default function ProductTable() {
   const [selected, setSelected] = useState<number[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const clearSelection = () => setSelected([]);
 
   const { products, mutate, isLoading } = useProducts();
 
@@ -55,6 +56,7 @@ export default function ProductTable() {
         selectedProducts={selected}
         products={products}
         onAction={handleBulkAction}
+        clearSelection={clearSelection}
       />
 
       <div className="bg-white rounded-xl shadow-sm border">

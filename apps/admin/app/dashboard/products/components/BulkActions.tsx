@@ -5,6 +5,8 @@ import toast, { Toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 import ConfirmModal from "../../../components/shared/ConfirmModal";
+import BulkActionBar from "../../../components/shared/BulkActionBar";
+import BulkActionButton from "../../../components/shared/BulkActionButton";
 import UndoToast from "../../../components/shared/UndoToast";
 import { exportCSV } from "../../../lib/exportCsv";
 
@@ -25,12 +27,14 @@ interface BulkActionsProps {
   selectedProducts: number[];
   products: ProductRow[];
   onAction: (action: ProductBulkAction) => Promise<void> | void;
+  clearSelection: () => void;
 }
 
 function BulkActions({
   selectedProducts,
   products,
   onAction,
+  clearSelection,
 }: BulkActionsProps) {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -40,7 +44,7 @@ function BulkActions({
 
   const router = useRouter();
 
-    //  Selected product snapshot
+  //  Selected product snapshot
   const selectedProductRows = useMemo(() => {
     return products.filter((p) => selectedProducts.includes(p.id));
   }, [products, selectedProducts]);
@@ -52,7 +56,7 @@ function BulkActions({
     }));
   }, [selectedProductRows]);
 
-    //  MAIN ACTION HANDLER
+  //  MAIN ACTION HANDLER
   const handleAction = useCallback(
     async (action: ProductBulkAction) => {
       try {
@@ -75,7 +79,7 @@ function BulkActions({
         toast.custom(
           (t: Toast) => (
             <UndoToast
-            message={`Bulk products ${action} updated successfully`}
+              message={`Bulk products ${action} updated successfully`}
               expiresAt={undoExpiresAt}
               onExpire={() => {
                 toast.remove(t.id);
@@ -128,7 +132,7 @@ function BulkActions({
     [onAction, selectedProducts.length, previousState, router]
   );
 
-    //  EXPORT CSV (PRODUCTS)
+  //  EXPORT CSV (PRODUCTS)
   const exportProducts = useCallback(() => {
     exportCSV(
       selectedProductRows.map((p) => ({
@@ -147,78 +151,49 @@ function BulkActions({
 
   return (
     <>
-      {/* ACTION BAR */}
-      <div
-        className="
-          sticky bottom-2 lg:top-4 z-40
-          rounded-2xl border border-gray-200
-          bg-white/95 backdrop-blur shadow-lg
-          px-4 py-3
-        "
+      <BulkActionBar
+        icon="📦"
+        title="Products Selected"
+        subtitle="Apply bulk actions on selected products"
+        count={selectedProducts.length}
+        onClear={clearSelection}
       >
-        <div
-          className="
-            flex flex-col gap-4
-            lg:flex-row lg:items-center lg:justify-between
-          "
-        >
-          {/* LEFT */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-              📦
-            </div>
+        <BulkActionButton
+          icon="✅"
+          label="Activate"
+          color="green"
+          loading={loading}
+          onClick={() => handleAction(ProductBulkAction.ACTIVATE)}
+        />
 
-            <div>
-              <div className="font-semibold text-gray-900">
-                {selectedProducts.length} Products Selected
-              </div>
-              <div className="text-xs text-gray-500">
-                Bulk manage selected products
-              </div>
-            </div>
-          </div>
+        <BulkActionButton
+          icon="⏸️"
+          label="Deactivate"
+          color="yellow"
+          loading={loading}
+          onClick={() => handleAction(ProductBulkAction.DEACTIVATE)}
+        />
 
-          {/* RIGHT ACTIONS */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              disabled={loading}
-              onClick={() => handleAction(ProductBulkAction.ACTIVATE)}
-              className="px-4 py-2 text-sm rounded-xl bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
-            >
-              {loading ? "Loading..." : "✅ Activate"}
-            </button>
+        <BulkActionButton
+          icon="🗑️"
+          label="Delete"
+          color="red"
+          loading={loading}
+          onClick={() => {
+            setPendingAction(ProductBulkAction.DELETE);
+            setConfirmOpen(true);
+          }}
+        />
 
-            <button
-              disabled={loading}
-              onClick={() => handleAction(ProductBulkAction.DEACTIVATE)}
-              className="px-4 py-2 text-sm rounded-xl bg-yellow-50 text-yellow-700 hover:bg-yellow-100 disabled:opacity-50"
-            >
-              {loading ? "Loading..." : "⏸ Deactivate"}
-            </button>
+        <BulkActionButton
+          icon="📄"
+          label="Export CSV"
+          color="blue"
+          loading={loading}
+          onClick={exportProducts}
+        />
+      </BulkActionBar>
 
-            <button
-              disabled={loading}
-              onClick={() => {
-                setPendingAction(ProductBulkAction.DELETE);
-                setConfirmOpen(true);
-              }}
-              className="px-4 py-2 text-sm rounded-xl bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
-            >
-              {loading ? "Loading..." : "🗑 Delete"}
-            </button>
-
-            <button
-              disabled={loading}
-              onClick={exportProducts}
-              className="px-4 py-2 text-sm rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50"
-            >
-              📄 Export
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* CONFIRM MODAL */}
       <ConfirmModal
         open={confirmOpen}
         title="Delete Products"

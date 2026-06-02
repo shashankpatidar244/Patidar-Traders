@@ -26,6 +26,8 @@ export default function InventoryClientPage({
 
   const { data, totalPages, currentLimit, refresh } = useInventory();
 
+  const clearSelection = () => setSelected([]);
+
   const filterFields: FilterField[] = [
     {
       key: "stock",
@@ -147,7 +149,12 @@ export default function InventoryClientPage({
         />
       </div>
 
-      <BulkActions selected={selected} data={variants} refresh={refresh} />
+      <BulkActions
+        selected={selected}
+        data={variants}
+        refresh={refresh}
+        clearSelection={clearSelection}
+      />
 
       {/* TABLE */}
       <div className="bg-white rounded-2xl overflow-hidden">

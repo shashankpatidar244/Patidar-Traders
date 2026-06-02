@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const body = await req.text() // RAW body needed
     const signature = req.headers.get("x-razorpay-signature") as string
 
-    // ✅ Verify signature
+    // Verify signature
     const expectedSignature = crypto
       .createHmac("sha256", WEBHOOK_SECRET)
       .update(body)
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const event = JSON.parse(body)
 
-    // 🎯 HANDLE EVENTS
+    // HANDLE EVENTS
     switch (event.event) {
       case "payment.captured":
         await handlePaymentSuccess(event.payload.payment.entity)
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       })
     }
     
-    console.log("✅ Payment captured:", razorpayOrderId)
+    console.log("Payment captured:", razorpayOrderId)
   }
   
   async function handlePaymentFailed(payment: any) {
@@ -90,6 +90,6 @@ export async function POST(req: NextRequest) {
       })
     }
   
-    console.log("❌ Payment failed:", razorpayOrderId)
+    console.log("Payment failed:", razorpayOrderId)
   }
   

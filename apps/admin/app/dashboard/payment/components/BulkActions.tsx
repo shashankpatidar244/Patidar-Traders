@@ -5,6 +5,8 @@ import toast, { type Toast } from "react-hot-toast";
 
 import ConfirmModal from "../../../components/shared/ConfirmModal";
 import UndoToast from "../../../components/shared/UndoToast";
+import BulkActionBar from "../../../components/shared/BulkActionBar";
+import BulkActionButton from "../../../components/shared/BulkActionButton";
 import { exportCSV } from "../../../lib/exportCsv";
 
 export enum PaymentBulkAction {
@@ -159,145 +161,74 @@ export default function BulkActions({
     return null;
   }
 
-  const buttonClass =
-    "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2";
-
   return (
     <>
-      <div
-        className="
-          sticky
-          top-4
-          z-40
-          rounded-2xl
-          border
-          border-gray-200
-          bg-white/95
-          backdrop-blur
-          px-5
-          py-4
-          shadow-lg
-        "
+      <BulkActionBar
+        icon="💳"
+        title="Payments Selected"
+        subtitle="Apply bulk actions on selected payments"
+        count={selectedCount}
+        onClear={clearSelection}
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* LEFT */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div
-              className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-full
-                bg-black
-                text-white
-                text-sm
-                font-bold
-              "
-            >
-              {selectedCount}
-            </div>
+        <BulkActionButton
+          icon="✅"
+          label="Mark Paid"
+          color="green"
+          loading={loading}
+          onClick={() => executeAction(PaymentBulkAction.MARK_PAID)}
+        />
 
-            <div>
-              <div className="font-semibold text-gray-900">
-                {selectedCount} Payments Selected
-              </div>
+        <BulkActionButton
+          icon="⏳"
+          label="Set Pending"
+          color="yellow"
+          loading={loading}
+          onClick={() => executeAction(PaymentBulkAction.SET_PENDING)}
+        />
 
-              <div className="text-xs text-gray-500">
-                Apply bulk payment actions
-              </div>
-            </div>
+        <BulkActionButton
+          icon="❌"
+          label="Mark Failed"
+          color="red"
+          loading={loading}
+          onClick={() => {
+            setPendingAction(PaymentBulkAction.FAIL);
+            setConfirmOpen(true);
+          }}
+        />
 
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="
-                text-xs
-                text-gray-500
-                underline
-                transition
-                hover:text-black
-              "
-            >
-              Clear Selection
-            </button>
-          </div>
+        <BulkActionButton
+          icon="↩️"
+          label="Refund"
+          color="red"
+          loading={loading}
+          onClick={() => {
+            setPendingAction(PaymentBulkAction.REFUND);
+            setConfirmOpen(true);
+          }}
+        />
 
-          {/* RIGHT */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={loading}
-              aria-label="Mark Payments Paid"
-              onClick={() => executeAction(PaymentBulkAction.MARK_PAID)}
-              className={`${buttonClass} bg-green-100 text-green-700 hover:bg-green-200`}
-            >
-              {loading ? "Processing..." : "Mark Paid"}
-            </button>
+        <BulkActionButton
+          icon="📄"
+          label="Export CSV"
+          color="blue"
+          disabled={!selectedPayments.length}
+          loading={loading}
+          onClick={() => {
+            exportCSV(
+              selectedPayments.map((payment) => ({
+                ID: payment.id,
+                Status: payment.paymentStatus,
+                Method: payment.paymentMethod,
+                CreatedAt: payment.createdAt,
+              })),
+              `payments-${Date.now()}.csv`
+            );
 
-            <button
-              type="button"
-              disabled={loading}
-              aria-label="Set Payments Pending"
-              onClick={() => executeAction(PaymentBulkAction.SET_PENDING)}
-              className={`${buttonClass} bg-yellow-100 text-yellow-700 hover:bg-yellow-200`}
-            >
-              {loading ? "Processing..." : "Set Pending"}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              aria-label="Mark Payments Failed"
-              onClick={() => {
-                setPendingAction(PaymentBulkAction.FAIL);
-
-                setConfirmOpen(true);
-              }}
-              className={`${buttonClass} bg-red-100 text-red-700 hover:bg-red-200`}
-            >
-              {loading ? "Processing..." : "Mark Failed"}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              aria-label="Refund Payments"
-              onClick={() => {
-                setPendingAction(PaymentBulkAction.REFUND);
-
-                setConfirmOpen(true);
-              }}
-              className={`${buttonClass} bg-orange-100 text-orange-700 hover:bg-orange-200`}
-            >
-              {loading ? "Processing..." : "Refund"}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            disabled={!selectedPayments.length}
-            aria-label="Export Payments"
-            onClick={() => {
-              exportCSV(
-                selectedPayments.map((payment) => ({
-                  ID: payment.id,
-                  Status: payment.paymentStatus,
-                  Method: payment.paymentMethod,
-                  CreatedAt: payment.createdAt,
-                })),
-                `payments-${Date.now()}.csv`
-              );
-
-              toast.success(`${selectedPayments.length} payments exported`);
-            }}
-            className={`${buttonClass} bg-blue-100 text-blue-700 hover:bg-blue-200`}
-          >
-            Export CSV
-          </button>
-        </div>
-      </div>
+            toast.success(`${selectedPayments.length} payments exported`);
+          }}
+        />
+      </BulkActionBar>
 
       <ConfirmModal
         open={confirmOpen}
@@ -309,13 +240,18 @@ export default function BulkActions({
         description={`Apply this action to ${selectedCount} selected payments?`}
         confirmText="Confirm"
         loading={loading}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => {
+          setConfirmOpen(false);
+          setPendingAction(null);
+        }}
         onConfirm={() => {
           setConfirmOpen(false);
 
           if (pendingAction) {
             executeAction(pendingAction);
           }
+
+          setPendingAction(null);
         }}
       />
     </>

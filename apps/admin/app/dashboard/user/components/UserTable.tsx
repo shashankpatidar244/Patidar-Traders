@@ -6,6 +6,7 @@ import BulkActions from "./BulkActions";
 
 export default function UserTable({ users }: { users: any[] }) {
   const [selected, setSelected] = useState<number[]>([]);
+  const clearSelection = () => setSelected([]);
 
   const toggle = (id: number) => {
     setSelected((prev) =>
@@ -33,7 +34,11 @@ export default function UserTable({ users }: { users: any[] }) {
   return (
     <div className="space-y-4">
       {/* BULK ACTIONS */}
-      <BulkActions selected={selected} users={users} />
+      <BulkActions
+        selected={selected}
+        users={users}
+        clearSelection={clearSelection}
+      />
 
       {/* TABLE CONTAINER */}
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
@@ -41,7 +46,7 @@ export default function UserTable({ users }: { users: any[] }) {
           <table className="w-full text-sm">
             {/* HEADER */}
             <thead className="bg-white/80 backdrop-blur sticky top-0 z-10 border-b">
-            <tr className="text-left text-gray-500 text-xs uppercase tracking-wide border-b-2 border-black">
+              <tr className="text-left text-gray-500 text-xs uppercase tracking-wide border-b-2 border-black">
                 <th className="p-4 w-10">
                   <input
                     type="checkbox"

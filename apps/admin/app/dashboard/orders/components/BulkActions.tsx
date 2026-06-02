@@ -4,6 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import ConfirmModal from "../../../components/shared/ConfirmModal";
+import BulkActionBar from "../../../components/shared/BulkActionBar";
+import BulkActionButton from "../../../components/shared/BulkActionButton";
 import { exportCSV } from "../../../lib/exportCsv";
 
 interface OrderRow {
@@ -32,16 +34,11 @@ type DeliveryStatus =
   | "OUT_FOR_DELIVERY"
   | "DELIVERED";
 
-interface OrderRow {
-  id: number;
-  status: OrderStatus;
-  deliveryStatus: DeliveryStatus;
-}
-
 interface BulkActionsProps {
   selected: number[];
   orders: OrderRow[];
   refresh: () => Promise<void>;
+  clearSelection: () => void;
 }
 
 enum BulkOrderAction {
@@ -58,6 +55,7 @@ export default function BulkActions({
   selected,
   orders,
   refresh,
+  clearSelection,
 }: BulkActionsProps) {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -137,179 +135,113 @@ export default function BulkActions({
     toast.success(`${selectedOrders.length} orders exported`);
   }, [selectedOrders]);
 
-  const badgeClass = useMemo(() => {
-    switch (currentStatus) {
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-700";
-
-      case "CONFIRMED":
-        return "bg-blue-100 text-blue-700";
-
-      case "PACKED":
-        return "bg-indigo-100 text-indigo-700";
-
-      case "COMPLETED":
-        return "bg-green-100 text-green-700";
-
-      case "CANCELLED":
-        return "bg-red-100 text-red-700";
-
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  }, [currentStatus]);
-
   if (!selected.length) return null;
-
-  const buttonClass =
-    "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-white transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2";
 
   return (
     <>
-      <div
-        className="
-          sticky
-          top-4
-          z-40
-          rounded-2xl
-          border
-          border-gray-200
-          bg-white/95
-          backdrop-blur
-          shadow-lg
-          p-4
-        "
+      <BulkActionBar
+        icon="📦"
+        title="Orders Selected"
+        subtitle="Apply bulk actions on selected orders"
+        count={selected.length}
+        onClear={clearSelection}
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* LEFT */}
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-xl">
-              📦
-            </div>
+        {currentStatus === "PENDING" && (
+          <BulkActionButton
+            icon="✅"
+            label="Confirm Orders"
+            color="blue"
+            loading={loading}
+            onClick={() => runAction(BulkOrderAction.CONFIRM)}
+          />
+        )}
 
-            <div>
-              <div className="font-semibold text-gray-900">
-                {selected.length} Orders Selected
-              </div>
+        {currentStatus === "CONFIRMED" && (
+          <BulkActionButton
+            icon="📦"
+            label="Mark Packed"
+            color="blue"
+            loading={loading}
+            onClick={() => runAction(BulkOrderAction.PACK)}
+          />
+        )}
 
-              <div className="text-xs text-gray-500">Bulk workflow actions</div>
+        {currentStatus === "PACKED" && (
+          <>
+            <BulkActionButton
+              icon="🚚"
+              label="Mark Shipped"
+              color="blue"
+              loading={loading}
+              onClick={() => runAction(BulkOrderAction.SHIP)}
+            />
 
-              <div className="mt-2">
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
-                >
-                  {currentStatus}
-                </span>
-              </div>
-            </div>
-          </div>
+            <BulkActionButton
+              icon="🛵"
+              label="Out For Delivery"
+              color="yellow"
+              loading={loading}
+              onClick={() => runAction(BulkOrderAction.OUT_FOR_DELIVERY)}
+            />
 
-          {/* ACTIONS */}
-          <div className="flex flex-wrap gap-2">
-            {currentStatus === "PENDING" && (
-              <button
-                disabled={loading}
-                aria-label="Confirm Orders"
-                onClick={() => runAction(BulkOrderAction.CONFIRM)}
-                className={`${buttonClass} bg-blue-600 hover:bg-blue-700`}
-              >
-                {loading ? "Processing..." : "Confirm Orders"}
-              </button>
-            )}
+            <BulkActionButton
+              icon="📍"
+              label="Delivered"
+              color="green"
+              loading={loading}
+              onClick={() => runAction(BulkOrderAction.DELIVER)}
+            />
+          </>
+        )}
 
-            {currentStatus === "CONFIRMED" && (
-              <button
-                disabled={loading}
-                aria-label="Mark Packed"
-                onClick={() => runAction(BulkOrderAction.PACK)}
-                className={`${buttonClass} bg-indigo-600 hover:bg-indigo-700`}
-              >
-                {loading ? "Processing..." : "Mark Packed"}
-              </button>
-            )}
+        {currentStatus === "PACKED" && allDelivered && (
+          <BulkActionButton
+            icon="🎉"
+            label="Complete Orders"
+            color="green"
+            loading={loading}
+            onClick={() => runAction(BulkOrderAction.COMPLETE)}
+          />
+        )}
 
-            {currentStatus === "PACKED" && (
-              <>
-                <button
-                  disabled={loading}
-                  aria-label="Mark Shipped"
-                  onClick={() => runAction(BulkOrderAction.SHIP)}
-                  className={`${buttonClass} bg-sky-600 hover:bg-sky-700`}
-                >
-                  Mark Shipped
-                </button>
+        {currentStatus === "COMPLETED" && (
+          <BulkActionButton
+            icon="✅"
+            label="Orders Completed"
+            color="green"
+            disabled
+            onClick={() => {}}
+          />
+        )}
 
-                <button
-                  disabled={loading}
-                  aria-label="Out For Delivery"
-                  onClick={() => runAction(BulkOrderAction.OUT_FOR_DELIVERY)}
-                  className={`${buttonClass} bg-violet-600 hover:bg-violet-700`}
-                >
-                  Out For Delivery
-                </button>
+        {currentStatus === "CANCELLED" && (
+          <BulkActionButton
+            icon="🚫"
+            label="Orders Cancelled"
+            color="red"
+            disabled
+            onClick={() => {}}
+          />
+        )}
 
-                <button
-                  disabled={loading}
-                  aria-label="Mark Delivered"
-                  onClick={() => runAction(BulkOrderAction.DELIVER)}
-                  className={`${buttonClass} bg-emerald-600 hover:bg-emerald-700`}
-                >
-                  Mark Delivered
-                </button>
-              </>
-            )}
+        {currentStatus !== "COMPLETED" && currentStatus !== "CANCELLED" && (
+          <BulkActionButton
+            icon="❌"
+            label="Cancel Orders"
+            color="red"
+            loading={loading}
+            onClick={() => setConfirmOpen(true)}
+          />
+        )}
 
-            {currentStatus === "PACKED" && allDelivered && (
-              <button
-                disabled={loading}
-                aria-label="Complete Orders"
-                onClick={() => runAction(BulkOrderAction.COMPLETE)}
-                className={`${buttonClass} bg-green-600 hover:bg-green-700`}
-              >
-                Complete Orders
-              </button>
-            )}
-
-            {currentStatus !== "COMPLETED" && currentStatus !== "CANCELLED" && (
-              <button
-                disabled={loading}
-                aria-label="Cancel Orders"
-                onClick={() => setConfirmOpen(true)}
-                className={`${buttonClass} bg-red-600 hover:bg-red-700`}
-              >
-                Cancel Orders
-              </button>
-            )}
-          </div>
-
-          <button
-            type="button"
-            disabled={loading}
-            aria-label="Export Orders CSV"
-            onClick={exportOrders}
-            className="
-                        inline-flex
-                        items-center
-                        justify-center
-                        rounded-xl
-                        bg-slate-700
-                        px-4
-                        py-2
-                        text-sm
-                        font-medium
-                        text-white
-                        shadow-sm
-                        transition-all
-                        hover:bg-slate-800
-                        hover:shadow-md
-                        disabled:cursor-not-allowed
-                        disabled:opacity-50
-                      "
-          >
-            Export CSV
-          </button>
-        </div>
-      </div>
+        <BulkActionButton
+          icon="📄"
+          label="Export CSV"
+          color="gray"
+          loading={loading}
+          onClick={exportOrders}
+        />
+      </BulkActionBar>
 
       <ConfirmModal
         open={confirmOpen}

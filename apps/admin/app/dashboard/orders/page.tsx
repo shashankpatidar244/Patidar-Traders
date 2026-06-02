@@ -13,6 +13,8 @@ import SearchFilterBar, {
 export default function OrdersPage() {
   const searchParams = useSearchParams();
 
+  const clearSelection = () => setSelected([]);
+
   const page = Number(searchParams.get("page") || 1);
 
   const currentLimit = Number(searchParams.get("limit") || 10);
@@ -24,7 +26,6 @@ export default function OrdersPage() {
   const deliveryStatus = searchParams.get("deliveryStatus") || "";
 
   const status = searchParams.get("status") || "";
-
   const sort = searchParams.get("sort") || "newest";
   const from = searchParams.get("from") || "";
   const to = searchParams.get("to") || "";
@@ -325,7 +326,12 @@ export default function OrdersPage() {
       />
 
       {/* BULK ACTIONS */}
-      <BulkActions selected={selected} orders={orders} refresh={loadOrders} />
+      <BulkActions
+        selected={selected}
+        orders={orders}
+        refresh={loadOrders}
+        clearSelection={clearSelection}
+      />
 
       {/* TABLE */}
       <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">

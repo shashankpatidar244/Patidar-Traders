@@ -138,7 +138,6 @@ export default function SearchFilterBar({
   ).length;
 
   // DATE FIELD
-  // DATE FIELD
 function renderDateField(field: FilterField) {
   const value = searchParams.get(field.key) || "";
 
