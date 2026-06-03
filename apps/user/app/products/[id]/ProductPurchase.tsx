@@ -13,7 +13,7 @@ export default function ProductPurchase({ product }: any) {
     (v: any) => v.id === variantId
   )
 
-  // ✅ New pricing logic
+  // New pricing logic
   const mrp = selectedVariant?.mrp
   const sellingPrice = selectedVariant?.sellingPrice
 

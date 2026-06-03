@@ -17,7 +17,7 @@ type RefreshPayload = {
 
 /**
  * =========================
- * ACCESS TOKEN (15 min)
+ * ACCESS TOKEN (60 min)
  * =========================
  */
 export function generateAccessToken(payload: AccessPayload) {
@@ -28,7 +28,7 @@ export function generateAccessToken(payload: AccessPayload) {
       type: "access",
     },
     ACCESS_SECRET,
-    { expiresIn: "30m" }
+    { expiresIn: "60m" }
   );
 }
 

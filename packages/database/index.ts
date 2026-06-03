@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
+export { startCronJobs } from "./cron";
+
 const globalForPrisma = global as unknown as {
   prisma: PrismaClient | undefined;
 };
