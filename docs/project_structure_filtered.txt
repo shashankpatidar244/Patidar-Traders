@@ -1,4 +1,5 @@
 --- Folder Structure ---
+
 [.vscode]
     └── settings.json
 [apps]
@@ -24,6 +25,10 @@
                     ├── [register]
                         └── route.ts
                     └── route.ts
+                ├── [brand]
+                    ├── route.ts
+                    └── [[id]]
+                        └── route.ts
                 ├── [category]
                     ├── route.ts
                     └── [[id]]
@@ -45,8 +50,6 @@
                         └── [undo]
                             └── route.ts
                     ├── [history]
-                        └── route.ts
-                    ├── [import]
                         └── route.ts
                     ├── route.ts
                     └── [update]
@@ -83,8 +86,6 @@
                 ├── [user]
                     ├── [bulk]
                         └── route.ts
-                    ├── [import]
-                        └── route.ts
                     ├── [logs]
                         └── route.ts
                     ├── route.ts
@@ -97,6 +98,14 @@
                         └── route.ts
             ├── [auth]
                 └── options.ts
+            ├── [components]
+                └── [shared]
+                    ├── BulkActionBar.tsx
+                    ├── BulkActionButton.tsx
+                    ├── ConfirmModal.tsx
+                    ├── Pagination.tsx
+                    ├── SearchFilterBar.tsx
+                    └── UndoToast.tsx
             ├── [dashboard]
                 ├── [admin-log]
                     └── page.tsx
@@ -114,6 +123,13 @@
                         └── useAnalytics.ts
                     ├── loading.tsx
                     └── page.tsx
+                ├── [brand]
+                    ├── [components]
+                        ├── BrandForm.tsx
+                        ├── BrandSelect.tsx
+                        ├── BrandTable.tsx
+                        └── DeleteModal.tsx
+                    └── page.tsx
                 ├── [category]
                     ├── [components]
                         ├── CategoryForm.tsx
@@ -128,12 +144,10 @@
                     ├── InsightsPanel.tsx
                     ├── KPICard.tsx
                     ├── OrdersChart.tsx
-                    ├── Pagination.tsx
                     ├── QuickActions.tsx
                     ├── RealtimeListener.tsx
                     ├── RecentOrders.tsx
-                    ├── RevenueChart.tsx
-                    └── SearchFilterBar.tsx
+                    └── RevenueChart.tsx
                 ├── [context]
                     ├── ThemeProvider.tsx
                     └── ThemeToggle.tsx
@@ -151,7 +165,7 @@
                 ├── [inventory]
                     ├── [components]
                         ├── BulkActions.tsx
-                        ├── ImportInventory.tsx
+                        ├── InventoryClientPage.tsx
                         ├── InventoryHistory.tsx
                         ├── InventoryTable.tsx
                         ├── ProductRow.tsx
@@ -215,7 +229,6 @@
                 └── [user]
                     ├── [components]
                         ├── BulkActions.tsx
-                        ├── ImportExport.tsx
                         ├── UserActions.tsx
                         ├── UserRow.tsx
                         ├── UserSearchFilters.tsx
@@ -235,6 +248,7 @@
                 ├── auth.ts
                 ├── cloudinary.ts
                 ├── cron.ts
+                ├── exportCsv.ts
                 ├── inventory.ts
                 ├── logger.ts
                 └── stock.ts
@@ -373,6 +387,7 @@
                 ├── startup.ts
                 ├── tokens.ts
                 └── [validators]
+                    ├── address.ts
                     └── auth.ts
             ├── [order-success]
                 └── page.tsx
@@ -433,6 +448,8 @@ package.json
         ├── [prisma]
             ├── [migrations]
                 ├── [20260519190311_init]
+                    └── migration.sql
+                ├── [20260603200905_add_address_type]
                     └── migration.sql
                 └── migration_lock.toml
             ├── schema.prisma

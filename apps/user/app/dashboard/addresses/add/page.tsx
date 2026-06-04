@@ -48,6 +48,12 @@ export default function AddAddressPage() {
     type: "HOME",
   });
 
+  const isFormValid = addressSchema.safeParse(form).success;
+
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof typeof form, string>>
+  >({});
+
   const updateField = <K extends keyof typeof form>(
     key: K,
     value: (typeof form)[K]
@@ -57,6 +63,11 @@ export default function AddAddressPage() {
     setForm((prev) => ({
       ...prev,
       [key]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [key]: "",
     }));
   };
 
@@ -90,14 +101,57 @@ export default function AddAddressPage() {
   };
 
   const getCurrentLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      async () => {
-        toast.success("Location detected. Auto-fill coming soon.");
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported");
+      return;
+    }
 
-        // reverse geocode later
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+
+          const data = await res.json();
+
+          const address = data.address || {};
+
+          setForm((prev) => ({
+            ...prev,
+            city: address.city || address.town || address.village || "",
+            state: address.state || "",
+            pincode: address.postcode || "",
+            line1:
+              address.road || address.suburb || address.neighbourhood || "",
+          }));
+
+          toast.success("Location detected successfully");
+        } catch {
+          toast.error("Failed to fetch address");
+        }
       },
-      () => {
-        toast.error("Unable to get location");
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Location permission denied");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location unavailable");
+            break;
+          case error.TIMEOUT:
+            toast.error("Location request timed out");
+            break;
+          default:
+            toast.error("Unable to get location");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
   };
@@ -124,13 +178,28 @@ export default function AddAddressPage() {
     if (loading) return;
 
     const parsed = addressSchema.safeParse(form);
-    
+
     console.log(parsed);
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message);
+      const fieldErrors: Record<string, string> = {};
+
+      parsed.error.issues.forEach((issue) => {
+        const field = issue.path[0] as string;
+
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      });
+
+      setErrors(fieldErrors);
+
+      toast.error("Please fix highlighted fields");
+
       return;
     }
+
+    setErrors({});
 
     if (form.phone.length !== 10) {
       toast.error("Enter valid mobile number");
@@ -164,7 +233,14 @@ export default function AddAddressPage() {
         throw new Error(data.error || "Failed to save address");
       }
 
-      toast.success("Address saved successfully");
+      toast.success(
+        form.isDefault
+          ? "🏠 Default address added successfully"
+          : "📍 Address added successfully",
+        {
+          duration: 3000,
+        }
+      );
 
       setIsDirty(false);
 
@@ -227,6 +303,14 @@ export default function AddAddressPage() {
           </div>
         </button>
 
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+          <p className="font-medium text-sm">Complete all required fields</p>
+
+          <p className="text-xs text-gray-600 mt-1">
+            Fields marked with * are mandatory.
+          </p>
+        </div>
+
         {/* Form Card */}
         <div className="bg-white rounded-3xl border shadow-sm">
           {/* Section Header */}
@@ -270,11 +354,36 @@ export default function AddAddressPage() {
                       required
                       autoComplete="name"
                       value={form.fullName}
-                      onChange={(e) => updateField("fullName", e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        updateField("fullName", value);
+
+                        if (
+                          value.trim().length > 0 &&
+                          value.trim().length < 3
+                        ) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            fullName: "Full name must be at least 3 characters",
+                          }));
+                        }
+                      }}
                       placeholder="Enter full name"
-                      className={inputClass}
+                      className={`${inputClass} ${
+                        errors.fullName ? "border-red-500" : ""
+                      }`}
                     />
                   </div>
+                  {errors.fullName ? (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.fullName}
+                    </p>
+                  ) : (
+                    <p className="text-gray-400 text-xs mt-1">
+                      Enter receiver's full name
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -291,13 +400,42 @@ export default function AddAddressPage() {
                       required
                       maxLength={10}
                       value={form.phone}
-                      onChange={(e) =>
-                        updateField("phone", e.target.value.replace(/\D/g, ""))
-                      }
-                      placeholder="9876543210"
-                      className={inputClass}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+
+                        updateField("phone", value);
+
+                        if (value.length > 0 && value.length < 10) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            phone: "Mobile number must contain 10 digits",
+                          }));
+                        }
+
+                        if (value.length === 10) {
+                          if (!/^[6-9]\d{9}$/.test(value)) {
+                            setErrors((prev) => ({
+                              ...prev,
+                              phone: "Must start with 6, 7, 8 or 9",
+                            }));
+                          }
+                        }
+                      }}
+                      placeholder="Enter a 10-digit Indian mobile number"
+                      className={`${inputClass} ${
+                        errors.phone
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
+                      }`}
                     />
                   </div>
+                  {errors.phone ? (
+                    <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                  ) : (
+                    <p className="text-gray-400 text-xs mt-1">
+                      Example: 9876543210
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -322,10 +460,35 @@ export default function AddAddressPage() {
                       required
                       rows={4}
                       value={form.line1}
-                      onChange={(e) => updateField("line1", e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        updateField("line1", value);
+
+                        if (
+                          value.trim().length > 0 &&
+                          value.trim().length < 10
+                        ) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            line1: "Address should be at least 10 characters",
+                          }));
+                        }
+                      }}
                       placeholder="House No, Building Name, Street, Area"
-                      className="w-full rounded-2xl border border-gray-200 pl-11 pr-4 py-3 text-sm resize-none outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                      className={`w-full rounded-2xl border ${
+                        errors.line1 ? "border-red-500" : "border-gray-200"
+                      } pl-11 pr-4 py-3 text-sm resize-none outline-none`}
                     />
+                    {errors.line1 ? (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.line1}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">
+                        House number, street, colony, area
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -360,13 +523,35 @@ export default function AddAddressPage() {
 
                         updateField("pincode", value);
 
+                        if (value.length > 0 && value.length < 6) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            pincode: "Pincode must be 6 digits",
+                          }));
+                        }
+
                         if (value.length === 6) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            pincode: "",
+                          }));
+
                           fetchPincodeData(value);
                         }
                       }}
-                      placeholder="462001"
-                      className={inputClass}
+                      placeholder="Enter a valid 6-digit pincode"
+                      className={`${inputClass} ${
+                        errors.pincode
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
+                      }`}
                     />
+
+                    {errors.pincode && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.pincode}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -379,9 +564,15 @@ export default function AddAddressPage() {
                       required
                       value={form.city}
                       onChange={(e) => updateField("city", e.target.value)}
-                      placeholder="City"
-                      className="w-full h-12 rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                      placeholder="Enter city"
+                      className={`w-full h-12 rounded-xl border px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5 ${
+                        errors.city ? "border-red-500" : "border-gray-200"
+                      }`}
                     />
+
+                    {errors.city && (
+                      <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                    )}
                   </div>
 
                   <div>
@@ -392,9 +583,17 @@ export default function AddAddressPage() {
                       required
                       value={form.state}
                       onChange={(e) => updateField("state", e.target.value)}
-                      placeholder="State"
-                      className="w-full h-12 rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                      placeholder="Enter state"
+                      className={`w-full h-12 rounded-xl border px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5 ${
+                        errors.state ? "border-red-500" : "border-gray-200"
+                      }`}
                     />
+
+                    {errors.state && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.state}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -461,13 +660,27 @@ export default function AddAddressPage() {
       </div>
 
       {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-        <div className="max-w-xl mx-auto p-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t shadow-lg">
+        <div className="max-w-xl mx-auto px-4 py-3">
+          {!isFormValid && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+              <span className="text-sm">⚠️</span>
+
+              <p className="text-xs text-amber-700">
+                Please complete all required fields before saving.
+              </p>
+            </div>
+          )}
+
           <button
             type="submit"
             form="address-form"
-            disabled={loading}
-            className="w-full h-14 rounded-2xl bg-black text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={loading || !isFormValid}
+            className={`w-full h-14 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
+              loading || !isFormValid
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-black text-white hover:bg-gray-900 active:scale-[0.98]"
+            }`}
           >
             {loading ? (
               <>
@@ -477,10 +690,15 @@ export default function AddAddressPage() {
             ) : (
               <>
                 <MapPin size={18} />
-                Save Address
+
+                {isFormValid ? "Save Address" : "Complete Required Fields"}
               </>
             )}
           </button>
+
+          <p className="text-center text-[11px] text-gray-400 mt-2">
+            Your delivery address will be used for future orders
+          </p>
         </div>
       </div>
     </div>

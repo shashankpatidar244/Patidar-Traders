@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { CartProvider } from "../context/CartContext";
 import "./globals.css";
-import Script from "next/script"; 
+import Script from "next/script";
 import { initApp } from "./lib/startup";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "User App",
@@ -27,6 +28,25 @@ export default function RootLayout({
         <CartProvider>
           <main>{children}</main>
         </CartProvider>
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            duration: 3000,
+            success: {
+              style: {
+                background: "#111827",
+                color: "#fff",
+              },
+            },
+            error: {
+              style: {
+                background: "#dc2626",
+                color: "#fff",
+              },
+            },
+          }}
+        />
       </body>
     </html>
   );
