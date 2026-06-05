@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 
 export default function AddToCartButton({
   productId,
@@ -9,10 +10,11 @@ export default function AddToCartButton({
 }: {
   productId: number;
   variantId: number;
-  stock?: number;
+  stock: number;
 }) {
   const [loading, setLoading] = useState(false);
   const [qty, setQty] = useState(0);
+  const toastTimer = useRef<NodeJS.Timeout | null>(null);
 
   const [toast, setToast] = useState<{
     show: boolean;
@@ -24,17 +26,49 @@ export default function AddToCartButton({
     type: "success",
   });
 
-  function showToast(
-    message: string,
-    type: "success" | "error" = "success"
-  ) {
+  useEffect(() => {
+    loadCartQty();
+  }, [productId, variantId]);
+
+  async function loadCartQty() {
+    if (!variantId) return;
+
+    try {
+      const res = await fetch(`/api/cart/item?variantId=${variantId}`);
+
+      if (!res.ok) {
+        setQty(0);
+        return;
+      }
+
+      const data = await res.json();
+
+      setQty(Number(data.quantity) || 0);
+    } catch {
+      setQty(0);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) {
+        clearTimeout(toastTimer.current);
+      }
+    };
+  }, []);
+
+  function showToast(message: string, type: "success" | "error" = "success") {
+    if (toastTimer.current) {
+      clearTimeout(toastTimer.current);
+    }
+
     setToast({
       show: true,
       message,
       type,
     });
 
-    setTimeout(() => {
+    toastTimer.current = setTimeout(() => {
       setToast((prev) => ({
         ...prev,
         show: false,
@@ -75,13 +109,18 @@ export default function AddToCartButton({
   }
 
   async function handleAdd() {
+    if (loading) return;
+
     setQty(1);
 
     const success = await updateCart(1);
 
-    if (success) {
-      showToast("Added to cart");
+    if (!success) {
+      setQty(0);
+      return;
     }
+
+    showToast("Added to cart");
   }
 
   async function increaseQty() {
@@ -93,10 +132,16 @@ export default function AddToCartButton({
     }
 
     const newQty = qty + 1;
+    const previousQty = qty;
 
     setQty(newQty);
 
     const success = await updateCart(newQty);
+
+    if (!success) {
+      setQty(previousQty);
+      return;
+    }
 
     if (success) {
       showToast("Quantity increased");
@@ -106,15 +151,19 @@ export default function AddToCartButton({
   async function decreaseQty() {
     if (loading) return;
 
+    const previousQty = qty;
+
     if (qty <= 1) {
       setQty(0);
 
       const success = await updateCart(0);
 
-      if (success) {
-        showToast("Removed from cart");
+      if (!success) {
+        setQty(previousQty);
+        return;
       }
 
+      showToast("Removed from cart");
       return;
     }
 
@@ -124,9 +173,12 @@ export default function AddToCartButton({
 
     const success = await updateCart(newQty);
 
-    if (success) {
-      showToast("Quantity decreased");
+    if (!success) {
+      setQty(previousQty);
+      return;
     }
+
+    showToast("Quantity decreased");
   }
 
   /* SOLD OUT */
@@ -143,9 +195,7 @@ export default function AddToCartButton({
         {toast.show && (
           <div
             className={`fixed top-5 right-5 z-[99999] px-4 py-3 rounded-xl shadow-lg text-white font-medium animate-in slide-in-from-top duration-300 ${
-              toast.type === "success"
-                ? "bg-[#2d9b4d]"
-                : "bg-red-500"
+              toast.type === "success" ? "bg-[#2d9b4d]" : "bg-red-500"
             }`}
           >
             {toast.message}
@@ -171,9 +221,7 @@ export default function AddToCartButton({
         {toast.show && (
           <div
             className={`fixed top-5 right-5 z-[99999] px-4 py-3 rounded-xl shadow-lg text-white font-medium animate-in slide-in-from-top duration-300 ${
-              toast.type === "success"
-                ? "bg-[#2d9b4d]"
-                : "bg-red-500"
+              toast.type === "success" ? "bg-[#2d9b4d]" : "bg-red-500"
             }`}
           >
             {toast.message}
@@ -187,16 +235,27 @@ export default function AddToCartButton({
   return (
     <>
       <div className="flex items-center overflow-hidden rounded-xl border border-gray-300 h-[56px] bg-white shadow-sm">
-        
         {/* MINUS */}
-        <button
-          type="button"
-          onClick={decreaseQty}
-          disabled={loading}
-          className="w-[50px] h-full text-[#f89a1c] text-2xl font-bold border-r hover:bg-orange-50 active:scale-95 transition disabled:opacity-50"
-        >
-          -
-        </button>
+        {qty === 1 ? (
+          <button
+            type="button"
+            onClick={decreaseQty}
+            disabled={loading}
+            aria-label="Remove from cart"
+            className="w-[56px] h-full flex items-center justify-center text-red-500 border-r hover:bg-red-50 active:scale-95 transition disabled:opacity-50"
+          >
+            <Trash2 size={20} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={decreaseQty}
+            disabled={loading}
+            className="w-[50px] h-full text-black text-2xl font-bold border-r hover:bg-gray-50 active:scale-95 transition disabled:opacity-50"
+          >
+            -
+          </button>
+        )}
 
         {/* COUNT */}
         <div className="w-[50px] h-full bg-[#2d9b4d] text-white flex items-center justify-center font-bold text-lg">
@@ -218,9 +277,7 @@ export default function AddToCartButton({
       {toast.show && (
         <div
           className={`fixed top-5 right-5 z-[99999] px-4 py-3 rounded-xl shadow-2xl text-white font-medium animate-in slide-in-from-top duration-300 ${
-            toast.type === "success"
-              ? "bg-[#2d9b4d]"
-              : "bg-red-500"
+            toast.type === "success" ? "bg-[#2d9b4d]" : "bg-red-500"
           }`}
         >
           {toast.message}

@@ -1,177 +1,181 @@
-import { prisma } from "@repo/database"
-import { NextResponse } from "next/server"
-import { getUserFromRequest } from "../../../app/lib/getUserFromRequest"
-
+import { prisma } from "@repo/database";
+import { NextResponse } from "next/server";
+import { getUserFromRequest } from "../../../app/lib/getUserFromRequest";
 
 // ===============================
 // ADD TO CART
 // ===============================
 export async function POST(req: Request) {
-
-  const user = await getUserFromRequest()
+  const user = await getUserFromRequest();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { productId, variantId } = await req.json()
+  const { productId, variantId, quantity } = await req.json();
 
-  if (!productId || !variantId) {
-    return NextResponse.json({ error: "Invalid data" })
+  if (!Number(productId) || !Number(variantId)) {
+    return NextResponse.json({ error: "Invalid data" });
   }
 
   const variant = await prisma.productVariant.findUnique({
-    where: { id: variantId }
-  })
+    where: { id: variantId },
+  });
 
   if (!variant || variant.stock <= 0) {
     return NextResponse.json({
-      error: "Out of stock"
-    })
+      error: "Out of stock",
+    });
   }
 
   const existing = await prisma.cartItem.findFirst({
     where: {
       userId: user.id,
       productId,
-      variantId
-    }
-  })
+      variantId,
+    },
+  });
 
   if (existing) {
+    if (quantity > variant.stock) {
+      return NextResponse.json(
+        { error: "Stock limit reached" },
+        { status: 400 }
+      );
+    }
 
-    if (existing.quantity >= variant.stock) {
-      return NextResponse.json({ error: "Stock limit reached" })
+    if (quantity <= 0) {
+      await prisma.cartItem.delete({
+        where: {
+          id: existing.id,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+      });
     }
 
     await prisma.cartItem.update({
-      where: { id: existing.id },
-      data: { quantity: existing.quantity + 1 }
-    })
-
+      where: {
+        id: existing.id,
+      },
+      data: {
+        quantity,
+      },
+    });
   } else {
-
+    if (quantity <= 0) {
+      return NextResponse.json({
+        success: true,
+      });
+    }
     await prisma.cartItem.create({
       data: {
         userId: user.id,
         productId,
         variantId,
-        quantity: 1
-      }
-    })
-
+        quantity,
+      },
+    });
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true });
 }
-
 
 // ===============================
 // UPDATE CART QUANTITY
 // ===============================
 export async function PATCH(req: Request) {
-
-  const user = await getUserFromRequest()
+  const user = await getUserFromRequest();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id, type } = await req.json()
+  const { id, type } = await req.json();
 
   const item = await prisma.cartItem.findUnique({
     where: { id },
-    include: { variant: true }
-  })
+    include: { variant: true },
+  });
 
   if (!item || item.userId !== user.id) {
-    return NextResponse.json({ error: "Item not found" })
+    return NextResponse.json({ error: "Item not found" });
   }
 
-  let newQty = item.quantity
+  let newQty = item.quantity;
 
   if (type === "inc") {
-
     if (item.variant && item.quantity >= item.variant.stock) {
-      return NextResponse.json({ error: "Out of stock" })
+      return NextResponse.json({ error: "Out of stock" });
     }
 
-    newQty++
-
+    newQty++;
   } else if (type === "dec") {
-
-    newQty--
-
+    newQty--;
   }
 
   if (newQty <= 0) {
-
     await prisma.cartItem.delete({
-      where: { id }
-    })
-
+      where: { id },
+    });
   } else {
-
     await prisma.cartItem.update({
       where: { id },
-      data: { quantity: newQty }
-    })
-
+      data: { quantity: newQty },
+    });
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true });
 }
-
 
 // ===============================
 // REMOVE CART ITEM
 // ===============================
 export async function DELETE(req: Request) {
-
-  const user = await getUserFromRequest()
+  const user = await getUserFromRequest();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await req.json()
+  const { id } = await req.json();
 
   const item = await prisma.cartItem.findUnique({
-    where: { id }
-  })
+    where: { id },
+  });
 
   if (!item || item.userId !== user.id) {
-    return NextResponse.json({ error: "Item not found" })
+    return NextResponse.json({ error: "Item not found" });
   }
 
   await prisma.cartItem.delete({
-    where: { id }
-  })
+    where: { id },
+  });
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true });
 }
-
 
 // ===============================
 // GET USER CART
 // ===============================
 export async function GET() {
-
-  const user = await getUserFromRequest()
+  const user = await getUserFromRequest();
 
   if (!user) {
-    return NextResponse.json([])
+    return NextResponse.json([]);
   }
 
   const cart = await prisma.cartItem.findMany({
     where: { userId: user.id },
     include: {
       product: {
-        include: { images: true }
+        include: { images: true },
       },
-      variant: true
-    }
-  })
+      variant: true,
+    },
+  });
 
-  return NextResponse.json(cart)
+  return NextResponse.json(cart);
 }

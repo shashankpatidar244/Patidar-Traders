@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, User, Phone, Home } from "lucide-react";
 import toast from "react-hot-toast";
 import { addressSchema } from "../../../../lib/validators/address";
 
@@ -68,7 +68,9 @@ export default function EditAddressPage() {
       }
     }
     loadAddress();
+  }, [id, router]);
 
+  useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!isDirty) return;
 
@@ -79,7 +81,7 @@ export default function EditAddressPage() {
     window.addEventListener("beforeunload", handler);
 
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty, id, router]);
+  }, [isDirty]);
 
   const updateField = <K extends keyof typeof form>(
     key: K,
@@ -202,43 +204,46 @@ export default function EditAddressPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-white border-b">
-        <div className="max-w-lg mx-auto h-14 px-4 flex items-center gap-3">
+      <div className="sticky top-0 z-30 backdrop-blur-xl bg-white/90 border-b border-slate-100">
+        <div className="max-w-xl mx-auto h-14 px-4 flex items-center gap-3">
           <button
             type="button"
             onClick={() => {
-              if (isDirty) {
-                const confirmed = window.confirm(
-                  "You have unsaved changes. Leave anyway?"
-                );
-
-                if (!confirmed) return;
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/dashboard/addresses");
               }
-
-              router.back();
             }}
-            className="p-2 rounded-lg hover:bg-gray-100"
+            className="group h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center transition-all duration-300 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md active:scale-95"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft
+              size={20}
+              className="text-slate-700 transition-all duration-300 group-hover:text-indigo-600 group-hover:-translate-x-0.5"
+            />
           </button>
 
-          <h1 className="font-semibold text-lg">Edit Address</h1>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Edit Address</h1>
+            <p className="text-xs text-gray-500">Delivery address details</p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto p-4">
-        <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
-          {/* Top Section */}
+      <div className="max-w-xl mx-auto px-4 py-4 space-y-4">
+        {/* Form Card */}
+        <div className="bg-white rounded-[28px] border border-slate-200 shadow-xl shadow-slate-100/50">
+          {/* Section Header */}
           <div className="p-5 border-b">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-black text-white flex items-center justify-center">
+              <div className="h-12 w-12 rounded-2xl bg-black text-white flex items-center justify-center text-lg">
                 <MapPin size={22} />
               </div>
 
               <div>
-                <h2 className="font-bold text-lg">Update Address</h2>
+                <h2 className="font-semibold">Update Address</h2>
 
                 <p className="text-sm text-gray-500">
                   Edit your delivery address
@@ -250,229 +255,330 @@ export default function EditAddressPage() {
           <form
             id="address-form"
             onSubmit={handleUpdate}
-            className="p-5 space-y-5"
+            className="p-5 space-y-6"
           >
-            {/* Full Name */}
+            {/* Contact Information */}
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Full Name
-              </label>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
 
-              <input
-                type="text"
-                required
-                value={form.fullName}
-                onChange={(e) => {
-                  const value = e.target.value;
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+                  Contact Information
+                </h3>
 
-                  updateField("fullName", value);
-
-                  if (value.trim().length > 0 && value.trim().length < 3) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      fullName: "Full name must be at least 3 characters",
-                    }));
-                  }
-                }}
-                className={`${inputClass} ${
-                  errors.fullName ? "border-red-500" : ""
-                }`}
-              />
-
-              {errors.fullName && (
-                <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
-              )}
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Mobile Number
-              </label>
-
-              <input
-                type="tel"
-                required
-                maxLength={10}
-                value={form.phone}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "");
-
-                  updateField("phone", value);
-
-                  if (value.length > 0 && value.length < 10) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      phone: "Mobile number must contain 10 digits",
-                    }));
-                  }
-
-                  if (value.length === 10) {
-                    if (!/^[6-9]\d{9}$/.test(value)) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        phone: "Must start with 6, 7, 8 or 9",
-                      }));
-                    }
-                  }
-                }}
-                className={inputClass}
-                placeholder="9876543210"
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-              )}
-            </div>
-
-            {/* Address Line 1 */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Address Line 1
-              </label>
-
-              <input
-                type="text"
-                required
-                value={form.line1}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  updateField("line1", value);
-
-                  if (value.trim().length > 0 && value.trim().length < 10) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      line1: "Address should be at least 10 characters",
-                    }));
-                  }
-                }}
-                className={`${inputClass} ${
-                  errors.line1 ? "border-red-500" : ""
-                }`}
-                placeholder="House No, Building, Street"
-              />
-              {errors.line1 && (
-                <p className="text-red-500 text-xs mt-1">{errors.line1}</p>
-              )}
-            </div>
-
-            {/* Landmark */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Landmark</label>
-
-              <input
-                type="text"
-                value={form.line2}
-                onChange={(e) => updateField("line2", e.target.value)}
-                className={inputClass}
-                placeholder="Near school, temple, mall"
-              />
-            </div>
-
-            {/* City & State */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">City</label>
-
-                <input
-                  type="text"
-                  required
-                  value={form.city}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    updateField("city", value);
-
-                    if (value && !/^[A-Za-z\s.-]+$/.test(value)) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        city: "City name can contain only letters",
-                      }));
-                    }
-                  }}
-                  className={`${inputClass} ${
-                    errors.city ? "border-red-500" : ""
-                  }`}
-                />
-                {errors.city && (
-                  <p className="text-red-500 text-xs mt-1">{errors.city}</p>
-                )}
+                <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 via-slate-200 to-transparent" />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">State</label>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm mb-2">Full Name *</label>
 
-                <input
-                  type="text"
-                  required
-                  value={form.state}
-                  onChange={(e) => {
-                    const value = e.target.value;
+                  <div className="relative">
+                    <User
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
 
-                    updateField("state", value);
+                    <input
+                      type="text"
+                      required
+                      autoComplete="name"
+                      value={form.fullName}
+                      onChange={(e) => {
+                        const value = e.target.value;
 
-                    if (value && !/^[A-Za-z\s.-]+$/.test(value)) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        state: "State name can contain only letters",
-                      }));
-                    }
-                  }}
-                  className={`${inputClass} ${
-                    errors.state ? "border-red-500" : ""
-                  }`}
-                />
+                        updateField("fullName", value);
 
-                {errors.state && (
-                  <p className="text-red-500 text-xs mt-1">{errors.state}</p>
-                )}
+                        if (
+                          value.trim().length > 0 &&
+                          value.trim().length < 3
+                        ) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            fullName: "Full name must be at least 3 characters",
+                          }));
+                        }
+                      }}
+                      placeholder="Enter full name"
+                      className={`${inputClass} pl-11 ${
+                        errors.fullName ? "border-red-500" : ""
+                      }`}
+                    />
+                  </div>
+                  {errors.fullName ? (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.fullName}
+                    </p>
+                  ) : (
+                    <p className="text-gray-400 text-xs mt-1">
+                      Enter receiver's full name
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-2">Mobile Number *</label>
+
+                  <div className="relative">
+                    <Phone
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      value={form.phone}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+
+                        updateField("phone", value);
+
+                        if (value.length > 0 && value.length < 10) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            phone: "Mobile number must contain 10 digits",
+                          }));
+                        }
+
+                        if (value.length === 10) {
+                          if (!/^[6-9]\d{9}$/.test(value)) {
+                            setErrors((prev) => ({
+                              ...prev,
+                              phone: "Must start with 6, 7, 8 or 9",
+                            }));
+                          }
+                        }
+                      }}
+                      placeholder="Enter a 10-digit Indian mobile number"
+                      className={`${inputClass} pl-11 ${
+                        errors.phone
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
+                      }`}
+                    />
+                  </div>
+                  {errors.phone ? (
+                    <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                  ) : (
+                    <p className="text-gray-400 text-xs mt-1">
+                      Example: 9876543210
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Pincode */}
+            {/* Address */}
             <div>
-              <label className="block text-sm font-medium mb-2">Pincode</label>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
 
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={form.pincode}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "");
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+                  Address Details
+                </h3>
 
-                  updateField("pincode", value);
+                <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 via-slate-200 to-transparent" />
+              </div>
 
-                  if (value.length > 0 && value.length < 6) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      pincode: "Pincode must be 6 digits",
-                    }));
-                  }
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm mb-2">Full Address *</label>
 
-                  if (value.length === 6) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      pincode: "",
-                    }));
+                  <div className="relative">
+                    <Home
+                      size={18}
+                      className="absolute left-4 top-4 text-gray-400"
+                    />
 
-                    fetchPincodeData(value);
-                  }
-                }}
-                className={`${inputClass} ${
-                  errors.pincode ? "border-red-500" : ""
-                }`}
-                placeholder="462001"
-              />
-              {errors.pincode && (
-                <p className="text-red-500 text-xs mt-1">{errors.pincode}</p>
-              )}
+                    <textarea
+                      required
+                      rows={4}
+                      value={form.line1}
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        updateField("line1", value);
+
+                        if (
+                          value.trim().length > 0 &&
+                          value.trim().length < 10
+                        ) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            line1: "Address should be at least 10 characters",
+                          }));
+                        }
+                      }}
+                      placeholder="House No, Building Name, Street, Area"
+                      className={`w-full rounded-2xl border ${
+                        errors.line1 ? "border-red-500" : "border-gray-200"
+                      } pl-11 pr-4 py-3 text-sm resize-none outline-none`}
+                    />
+                    {errors.line1 ? (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.line1}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">
+                        House number, street, colony, area
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-2">Landmark</label>
+
+                  <input
+                    type="text"
+                    value={form.line2}
+                    onChange={(e) => updateField("line2", e.target.value)}
+                    placeholder="Near school, temple, mall"
+                    className="w-full h-12 rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-2">Pincode *</label>
+
+                  <div className="relative">
+                    <MapPin
+                      size={18}
+                      className="absolute left-4 top-4 text-gray-400"
+                    />
+
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={form.pincode}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+
+                        updateField("pincode", value);
+
+                        if (value.length > 0 && value.length < 6) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            pincode: "Pincode must be 6 digits",
+                          }));
+                        }
+
+                        if (value.length === 6) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            pincode: "",
+                          }));
+
+                          fetchPincodeData(value);
+                        }
+                      }}
+                      placeholder="Enter a valid 6-digit pincode"
+                      className={`${inputClass} pl-11 ${
+                        errors.pincode
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
+                      }`}
+                    />
+
+                    {errors.pincode && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.pincode}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-2">City *</label>
+
+                    <input
+                      type="text"
+                      required
+                      value={form.city}
+                      onChange={(e) => {
+                        updateField("city", e.target.value);
+
+                        const result = addressSchema.shape.city.safeParse(
+                          e.target.value
+                        );
+
+                        setErrors((prev) => ({
+                          ...prev,
+                          city: result.success
+                            ? ""
+                            : result.error.issues[0]?.message,
+                        }));
+                      }}
+                      placeholder="Enter city"
+                      className={`w-full h-12 rounded-xl border px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5 ${
+                        errors.city ? "border-red-500" : "border-gray-200"
+                      }`}
+                    />
+                    {errors.city ? (
+                      <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">
+                        Enter your city name
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm mb-2">State *</label>
+
+                    <input
+                      type="text"
+                      required
+                      value={form.state}
+                      onChange={(e) => {
+                        updateField("state", e.target.value);
+
+                        const result = addressSchema.shape.state.safeParse(
+                          e.target.value
+                        );
+
+                        setErrors((prev) => ({
+                          ...prev,
+                          state: result.success
+                            ? ""
+                            : result.error.issues[0]?.message,
+                        }));
+                      }}
+                      placeholder="Enter state"
+                      className={`w-full h-12 rounded-xl border px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5 ${
+                        errors.state ? "border-red-500" : "border-gray-200"
+                      }`}
+                    />
+
+                    {errors.state ? (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.state}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">
+                        Enter your state name
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
+            {/* Address Type */}
             <div>
-              <h3 className="font-medium text-sm text-gray-700 mb-4">
-                Address Type
-              </h3>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
+
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+                  Address Type
+                </h3>
+
+                <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 via-slate-200 to-transparent" />
+              </div>
 
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -495,10 +601,10 @@ export default function EditAddressPage() {
                     onClick={() =>
                       updateField("type", item.value as AddressType)
                     }
-                    className={`h-12 rounded-xl border text-sm font-medium transition-all ${
+                    className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
                       form.type === item.value
-                        ? "bg-black text-white border-black"
-                        : "bg-white hover:border-gray-400"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20"
+                        : "bg-slate-50 border-slate-200 text-slate-700"
                     }`}
                   >
                     {item.label}
@@ -507,65 +613,86 @@ export default function EditAddressPage() {
               </div>
             </div>
 
-            <label className="flex items-center justify-between p-4 rounded-2xl border bg-gray-50 cursor-pointer">
+            {/* Default Address */}
+            <label
+              className={`flex items-center justify-between rounded-2xl border p-4 cursor-pointer transition-all ${
+                form.isDefault
+                  ? "border-green-200 bg-green-50"
+                  : "border-gray-200 bg-white"
+              }`}
+            >
               <div>
-                <p className="font-medium">Set as Default Address</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  Set as default address
+                </p>
 
-                <p className="text-sm text-gray-500">
-                  Automatically use for future orders
+                <p className="mt-1 text-xs text-gray-500">
+                  We'll pre-select this address for your next order.
                 </p>
               </div>
 
-              <input
-                type="checkbox"
-                checked={form.isDefault}
-                onChange={(e) => updateField("isDefault", e.target.checked)}
-                className="h-5 w-5"
-              />
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={form.isDefault}
+                  onChange={(e) => updateField("isDefault", e.target.checked)}
+                  className="peer sr-only"
+                />
+
+                <div className="h-6 w-11 rounded-full bg-gray-300 transition-colors peer-checked:bg-green-500" />
+
+                <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
+              </div>
             </label>
-          </form>
-        </div>
-      </div>
 
-      {/* Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t shadow-lg">
-        <div className="max-w-xl mx-auto px-4 py-3">
-          {!isFormValid && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
-              <span>⚠️</span>
+            {/* Bottom Action */}
+            <div className="max-w-xl mx-auto ">
+              {!isFormValid && (
+                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                  <span className="mt-0.5 text-amber-600">⚠️</span>
 
-              <p className="text-xs text-amber-700">
-                Please complete all required fields before updating.
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">
+                      Complete all required fields
+                    </p>
+
+                    <p className="mt-1 text-xs text-amber-700">
+                      Fields marked with * are mandatory before you can save.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                form="address-form"
+                disabled={saving || !isFormValid}
+                className={`w-full h-14 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                  saving || !isFormValid
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-black text-white hover:bg-gray-900 active:scale-[0.98]"
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Updating Address...
+                  </>
+                ) : (
+                  <>
+                    <MapPin size={18} />
+                    {isFormValid
+                      ? "Update Address"
+                      : "Complete Required Fields"}
+                  </>
+                )}
+              </button>
+
+              <p className="text-center text-[11px] text-gray-400 mt-2">
+                Changes will be saved to your delivery address
               </p>
             </div>
-          )}
-
-          <button
-            type="submit"
-            form="address-form"
-            disabled={saving || !isFormValid}
-            className={`w-full h-14 rounded-2xl font-semibold flex items-center justify-center gap-2 ${
-              saving || !isFormValid
-                ? "bg-gray-300 text-gray-500"
-                : "bg-black text-white"
-            }`}
-          >
-            {saving ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Updating Address...
-              </>
-            ) : (
-              <>
-                <MapPin size={18} />
-                Update Address
-              </>
-            )}
-          </button>
-
-          <p className="text-center text-[11px] text-gray-400 mt-2">
-            Changes will be saved to your delivery address
-          </p>
+          </form>
         </div>
       </div>
     </div>

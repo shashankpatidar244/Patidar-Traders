@@ -11,7 +11,6 @@ import {
   Home,
   Navigation,
 } from "lucide-react";
-
 import toast from "react-hot-toast";
 import { addressSchema } from "../../../lib/validators/address";
 
@@ -257,9 +256,9 @@ export default function AddAddressPage() {
     "w-full h-12 rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-sm outline-none transition-all focus:border-black focus:ring-4 focus:ring-black/5";
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b">
+      <div className="sticky top-0 z-30 backdrop-blur-xl bg-white/90 border-b border-slate-100">
         <div className="max-w-xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
             type="button"
@@ -270,14 +269,18 @@ export default function AddAddressPage() {
                 router.push("/dashboard/addresses");
               }
             }}
-            className="h-10 w-10 rounded-full border flex items-center justify-center hover:bg-gray-100"
+            className="group relative h-11 w-11 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center transition-all duration-300 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50 active:scale-95"
           >
-            <ArrowLeft size={18} />
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+            <ArrowLeft
+              size={20}
+              className="relative z-10 text-slate-700 transition-all duration-300 group-hover:text-indigo-600 group-hover:-translate-x-0.5"
+            />
           </button>
 
           <div>
-            <h1 className="font-semibold text-lg">Add Address</h1>
-
+            <h1 className="text-xl font-bold text-slate-900">Add Address</h1>
             <p className="text-xs text-gray-500">Delivery address details</p>
           </div>
         </div>
@@ -290,7 +293,7 @@ export default function AddAddressPage() {
           onClick={getCurrentLocation}
           className="w-full bg-white border rounded-2xl p-4 flex items-center gap-4 hover:border-black transition"
         >
-          <div className="h-12 w-12 rounded-xl bg-black text-white flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
             <Navigation size={20} />
           </div>
 
@@ -303,16 +306,8 @@ export default function AddAddressPage() {
           </div>
         </button>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-          <p className="font-medium text-sm">Complete all required fields</p>
-
-          <p className="text-xs text-gray-600 mt-1">
-            Fields marked with * are mandatory.
-          </p>
-        </div>
-
         {/* Form Card */}
-        <div className="bg-white rounded-3xl border shadow-sm">
+        <div className="bg-white rounded-[28px] border border-slate-200 shadow-xl shadow-slate-100/50">
           {/* Section Header */}
           <div className="p-5 border-b">
             <div className="flex items-center gap-3">
@@ -335,9 +330,15 @@ export default function AddAddressPage() {
           >
             {/* Contact Information */}
             <div>
-              <h3 className="font-medium text-sm text-gray-700 mb-4">
-                Contact Information
-              </h3>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
+
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+                  Contact Information
+                </h3>
+
+                <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 via-slate-200 to-transparent" />
+              </div>
 
               <div className="space-y-4">
                 <div>
@@ -372,7 +373,7 @@ export default function AddAddressPage() {
                       placeholder="Enter full name"
                       className={`${inputClass} ${
                         errors.fullName ? "border-red-500" : ""
-                      }`}
+                      }pl-11 pr-4 py-3 text-sm resize-none outline-none`}
                     />
                   </div>
                   {errors.fullName ? (
@@ -426,7 +427,7 @@ export default function AddAddressPage() {
                         errors.phone
                           ? "border-red-500 focus:border-red-500"
                           : ""
-                      }`}
+                      }pl-11 pr-4 py-3 text-sm resize-none outline-none`}
                     />
                   </div>
                   {errors.phone ? (
@@ -442,9 +443,15 @@ export default function AddAddressPage() {
 
             {/* Address */}
             <div>
-              <h3 className="font-medium text-sm text-gray-700 mb-4">
-                Address Details
-              </h3>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
+
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+                  Address Details
+                </h3>
+
+                <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 via-slate-200 to-transparent" />
+              </div>
 
               <div className="space-y-4">
                 <div>
@@ -544,7 +551,7 @@ export default function AddAddressPage() {
                         errors.pincode
                           ? "border-red-500 focus:border-red-500"
                           : ""
-                      }`}
+                      }pl-11 pr-4 py-3 text-sm resize-none outline-none`}
                     />
 
                     {errors.pincode && (
@@ -563,15 +570,32 @@ export default function AddAddressPage() {
                       type="text"
                       required
                       value={form.city}
-                      onChange={(e) => updateField("city", e.target.value)}
+                      onChange={(e) => {
+                        updateField("city", e.target.value);
+
+                        const result = addressSchema.shape.city.safeParse(
+                          e.target.value
+                        );
+
+                        setErrors((prev) => ({
+                          ...prev,
+                          city: result.success
+                            ? ""
+                            : result.error.issues[0]?.message,
+                        }));
+                      }}
                       placeholder="Enter city"
                       className={`w-full h-12 rounded-xl border px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5 ${
                         errors.city ? "border-red-500" : "border-gray-200"
                       }`}
                     />
 
-                    {errors.city && (
+                    {errors.city ? (
                       <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">
+                        Enter your city name
+                      </p>
                     )}
                   </div>
 
@@ -582,16 +606,33 @@ export default function AddAddressPage() {
                       type="text"
                       required
                       value={form.state}
-                      onChange={(e) => updateField("state", e.target.value)}
+                      onChange={(e) => {
+                        updateField("state", e.target.value);
+
+                        const result = addressSchema.shape.state.safeParse(
+                          e.target.value
+                        );
+
+                        setErrors((prev) => ({
+                          ...prev,
+                          state: result.success
+                            ? ""
+                            : result.error.issues[0]?.message,
+                        }));
+                      }}
                       placeholder="Enter state"
                       className={`w-full h-12 rounded-xl border px-4 text-sm outline-none focus:border-black focus:ring-4 focus:ring-black/5 ${
                         errors.state ? "border-red-500" : "border-gray-200"
                       }`}
                     />
 
-                    {errors.state && (
+                    {errors.state ? (
                       <p className="text-red-500 text-xs mt-1">
                         {errors.state}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 text-xs mt-1">
+                        Enter your state name
                       </p>
                     )}
                   </div>
@@ -601,9 +642,15 @@ export default function AddAddressPage() {
 
             {/* Address Type */}
             <div>
-              <h3 className="font-medium text-sm text-gray-700 mb-4">
-                Address Type
-              </h3>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
+
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+                  Address Type
+                </h3>
+
+                <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 via-slate-200 to-transparent" />
+              </div>
 
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -626,10 +673,10 @@ export default function AddAddressPage() {
                     onClick={() =>
                       updateField("type", item.value as AddressType)
                     }
-                    className={`h-12 rounded-xl border text-sm font-medium transition-all ${
+                    className={`h-14 rounded-2xl border text-sm font-semibold transition-all ${
                       form.type === item.value
-                        ? "bg-black text-white border-black"
-                        : "bg-white hover:border-gray-400"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20"
+                        : "bg-slate-50 border-slate-200 text-slate-700"
                     }`}
                   >
                     {item.label}
@@ -639,66 +686,84 @@ export default function AddAddressPage() {
             </div>
 
             {/* Default Address */}
-            <label className="flex items-center justify-between p-4 rounded-2xl border bg-gray-50 cursor-pointer">
+            <label
+              className={`flex items-center justify-between rounded-2xl border p-4 cursor-pointer transition-all ${
+                form.isDefault
+                  ? "border-green-200 bg-green-50"
+                  : "border-gray-200 bg-white"
+              }`}
+            >
               <div>
-                <p className="font-medium">Set as Default Address</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  Set as default address
+                </p>
 
-                <p className="text-sm text-gray-500">
-                  Automatically use for future orders
+                <p className="mt-1 text-xs text-gray-500">
+                  We'll pre-select this address for your next order.
                 </p>
               </div>
 
-              <input
-                type="checkbox"
-                checked={form.isDefault}
-                onChange={(e) => updateField("isDefault", e.target.checked)}
-                className="h-5 w-5"
-              />
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={form.isDefault}
+                  onChange={(e) => updateField("isDefault", e.target.checked)}
+                  className="peer sr-only"
+                />
+
+                <div className="h-6 w-11 rounded-full bg-gray-300 transition-colors peer-checked:bg-green-500" />
+
+                <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
+              </div>
             </label>
-          </form>
-        </div>
-      </div>
 
-      {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t shadow-lg">
-        <div className="max-w-xl mx-auto px-4 py-3">
-          {!isFormValid && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
-              <span className="text-sm">⚠️</span>
+            {/* Bottom Action */}
+            <div className="max-w-xl mx-auto ">
+              {!isFormValid && (
+                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                  <span className="mt-0.5 text-amber-600">⚠️</span>
 
-              <p className="text-xs text-amber-700">
-                Please complete all required fields before saving.
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">
+                      Complete all required fields
+                    </p>
+
+                    <p className="mt-1 text-xs text-amber-700">
+                      Fields marked with * are mandatory before you can save.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                form="address-form"
+                disabled={loading || !isFormValid}
+                className={`w-full h-14 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                  loading || !isFormValid
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-black text-white hover:bg-gray-900 active:scale-[0.98]"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Saving Address...
+                  </>
+                ) : (
+                  <>
+                    <MapPin size={18} />
+
+                    {isFormValid ? "Save Address" : "Complete Required Fields"}
+                  </>
+                )}
+              </button>
+
+              <p className="text-center text-[11px] text-gray-400 mt-2">
+                Your delivery address will be used for future orders
               </p>
             </div>
-          )}
-
-          <button
-            type="submit"
-            form="address-form"
-            disabled={loading || !isFormValid}
-            className={`w-full h-14 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-              loading || !isFormValid
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-black text-white hover:bg-gray-900 active:scale-[0.98]"
-            }`}
-          >
-            {loading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Saving Address...
-              </>
-            ) : (
-              <>
-                <MapPin size={18} />
-
-                {isFormValid ? "Save Address" : "Complete Required Fields"}
-              </>
-            )}
-          </button>
-
-          <p className="text-center text-[11px] text-gray-400 mt-2">
-            Your delivery address will be used for future orders
-          </p>
+          </form>
         </div>
       </div>
     </div>

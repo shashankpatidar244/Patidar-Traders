@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Heart } from "lucide-react";
 import VariantSelector from "./VariantSelector";
 
@@ -13,26 +13,91 @@ type Variant = {
   sellingPrice?: number | null;
 };
 
-export default function ProductCard({ product }: any) {
+type ProductCardProps = {
+  product: any;
+  wishlist: string[];
+  setWishlist: React.Dispatch<React.SetStateAction<string[]>>;
+};
+
+export default function ProductCard({
+  product,
+  wishlist,
+  setWishlist,
+}: ProductCardProps) {
   const images = product.images || [];
   const [imageIndex, setImageIndex] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
+
+  const [variantId, setVariantId] = useState<number | null>(
+    product.variants?.[0]?.id || null
+  );
+
+  const wishlistKey = `${product.id}-${variantId}`;
+
+  const isWishlisted = wishlist.includes(wishlistKey);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  async function toggleWishlist() {
+    if (!variantId || loadingWishlist) return;
+
+    try {
+      setLoadingWishlist(true);
+
+      const res = await fetch("/api/wishlist", {
+        method: isWishlisted ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          variantId,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Wishlist request failed");
+      }
+
+      if (isWishlisted) {
+        setWishlist((prev: string[]) =>
+          prev.filter((id) => id !== wishlistKey)
+        );
+      } else {
+        setWishlist((prev: string[]) =>
+          prev.includes(wishlistKey) ? prev : [...prev, wishlistKey]
+        );
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingWishlist(false);
+    }
+  }
 
   function startSlider() {
-    if (!images.length) return;
+    if (!images.length || intervalRef.current) return;
+
     intervalRef.current = setInterval(() => {
       setImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
     }, 1800);
   }
 
   function stopSlider() {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     setImageIndex(0);
   }
-
-  const [variantId, setVariantId] = useState<number | null>(
-    product.variants?.[0]?.id || null
-  );
 
   const selectedVariant = product.variants?.find(
     (v: Variant) => v.id === variantId
@@ -70,20 +135,42 @@ export default function ProductCard({ product }: any) {
         </Link>
 
         {/* Wishlist */}
-        <button className="absolute top-3 right-3 bg-white/90 shadow-sm backdrop-blur p-2 rounded-full hover:bg-white transition">
-          <Heart size={16} className="text-gray-700" />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleWishlist();
+          }}
+          disabled={loadingWishlist}
+          className="absolute top-3 right-3 bg-white/90 shadow-sm backdrop-blur p-2 rounded-full hover:bg-white transition"
+        >
+          <Heart
+            size={16}
+            className={
+              loadingWishlist
+                ? "animate-pulse text-gray-400"
+                : isWishlisted
+                  ? "fill-red-500 text-red-500"
+                  : "text-gray-700"
+            }
+          />
         </button>
 
         {/* Indicators */}
         <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-          {images.map((_: any, i: number) => (
-            <div
-              key={i}
-              className={`h-1.5 w-3 rounded-full transition-all ${
-                imageIndex === i ? "bg-black" : "bg-gray-300"
-              }`}
-            />
-          ))}
+          {images.length > 1 && (
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+              {images.map((_: any, i: number) => (
+                <div
+                  key={i}
+                  className={`h-1.5 w-3 rounded-full ${
+                    imageIndex === i ? "bg-black" : "bg-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

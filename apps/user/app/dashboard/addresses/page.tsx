@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   MapPin,
@@ -10,6 +11,7 @@ import {
   CheckCircle,
   Loader2,
   Phone,
+  ArrowLeft,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -30,6 +32,7 @@ export default function AddressesPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/address")
@@ -110,22 +113,46 @@ export default function AddressesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">My Addresses</h1>
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60">
+        <div className="max-w-3xl mx-auto px-4 h-20 flex items-center justify-between">
+          {/* Left */}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/dashboard");
+                }
+              }}
+              className="group h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center transition-all duration-300 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md active:scale-95"
+            >
+              <ArrowLeft
+                size={20}
+                className="text-slate-700 transition-all duration-300 group-hover:text-indigo-600 group-hover:-translate-x-0.5"
+              />
+            </button>
 
-            <p className="text-xs text-gray-500 mt-0.5">
-              {addresses.length} saved address
-              {addresses.length !== 1 ? "es" : ""}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-slate-900">
+                  My Addresses
+                </h1>
+              </div>
+              <p className="text-sm text-slate-500 mt-1">
+                {addresses.length} saved address
+                {addresses.length !== 1 ? "es" : ""}
+              </p>
+            </div>
           </div>
 
+          {/* Desktop CTA */}
           <Link
             href="/dashboard/addresses/add"
-            className="hidden sm:flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-xl font-medium hover:opacity-90 transition"
+            className="hidden sm:flex items-center gap-2 h-11 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all"
           >
-            <Plus size={16} />
+            <Plus size={18} />
             Add Address
           </Link>
         </div>
@@ -185,7 +212,7 @@ export default function AddressesPage() {
 
                     {/* Address Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-4">
                         <h2 className="font-semibold text-base">
                           {addr.fullName}
                         </h2>
@@ -216,40 +243,36 @@ export default function AddressesPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Phone size={14} />
                         {addr.phone}
-                      </div>
-
-                      <div className="mt-4 border rounded-2xl overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-2 border-b flex items-center gap-2">
-                          <MapPin size={14} className="text-gray-500" />
-
-                          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                            Delivery Address
-                          </span>
-                        </div>
-
-                        <div className="p-4">
-                          <p className="text-sm font-medium text-gray-900 leading-6">
-                            {addr.line1}
-                            {addr.line2 && `, ${addr.line2}`}
-                          </p>
-
-                          <p className="text-sm text-gray-600 mt-2">
-                            {addr.city}, {addr.state}
-                          </p>
-
-                          <p className="text-sm font-semibold text-gray-800 mt-1">
-                            {addr.pincode}
-                          </p>
-                        </div>
                       </div>
                     </div>
                   </div>
 
+                  <div className="mt-2 border rounded-2xl overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2 border-b flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-500" />
+
+                      <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                        Delivery Address
+                      </span>
+                    </div>
+
+                    <div className="py-2 px-4">
+                      <p className="text-sm font-medium text-gray-900 leading-6">
+                        {addr.line1}
+                        {addr.line2 && `, ${addr.line2}`}
+                      </p>
+
+                      <p className="text-sm text-gray-600 mt-1">
+                        {addr.city}, {addr.state} - {addr.pincode}
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Actions */}
-                  <div className="grid grid-cols-2 gap-3 mt-5">
+                  <div className="grid grid-cols-2 gap-3 mt-4">
                     <Link
                       href={`/dashboard/addresses/edit/${addr.id}`}
                       className="h-11 rounded-xl border bg-white flex items-center justify-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition"

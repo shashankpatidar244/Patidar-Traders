@@ -159,7 +159,16 @@ export default function VariantSelector({
                   return (
                     <div
                       key={variant.id}
-                      className="bg-white rounded-xl border border-gray-200 px-4 py-4 shadow-sm"
+                      onClick={() => {
+                        onChange(variant.id);
+                      }}
+                      className={`cursor-pointer rounded-xl px-4 py-4 shadow-sm border transition-all
+                        ${
+                          value === variant.id
+                            ? "border-green-500 bg-green-50 ring-2 ring-green-200"
+                            : "border-gray-200 bg-white hover:border-green-300 hover:bg-green-50/40"
+                        }
+                      `}
                     >
                       <div className="flex items-center justify-between gap-3">
                         {/* LEFT */}
@@ -216,7 +225,10 @@ export default function VariantSelector({
                         </div>
 
                         {/* RIGHT */}
-                        <div className="w-[135px] shrink-0">
+                        <div
+                          className="w-[135px] shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <AddToCartButton
                             productId={productId}
                             variantId={variant.id}
