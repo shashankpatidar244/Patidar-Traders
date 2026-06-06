@@ -14,11 +14,14 @@ export default async function CartPage() {
     where: { userId: user.id },
     include: {
       product: {
-        include: { images: true }
+        include: { images: true },
       },
-      variant: true
-    }
-  })
+      variant: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
   if (!cartItems.length) {
 
