@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   MapPin,
   Phone,
@@ -43,6 +43,10 @@ export default function AddressSelector({
   const [showSelector, setShowSelector] = useState(false);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const checkoutRedirect = searchParams.toString()
+    ? `/checkout?${searchParams.toString()}`
+    : "/checkout";
 
   const currentAddress =
     addresses.find((a) => a.id === selected) ||
@@ -71,6 +75,26 @@ export default function AddressSelector({
     }
   }
 
+  async function deleteAddress(id: number) {
+    const confirmed = window.confirm("Delete this address?");
+
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/address/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error();
+      }
+
+      router.refresh();
+    } catch {
+      alert("Failed to delete address");
+    }
+  }
+
   // NO ADDRESS
   if (!addresses.length) {
     return (
@@ -84,7 +108,13 @@ export default function AddressSelector({
         </p>
 
         <button
-          onClick={() => router.push("/dashboard/addresses/add")}
+          onClick={() =>
+            router.push(
+              `/dashboard/addresses/add?redirect=${encodeURIComponent(
+                checkoutRedirect
+              )}`
+            )
+          }
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg"
         >
           <Plus className="w-4 h-4" />
@@ -179,7 +209,13 @@ export default function AddressSelector({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => router.push("/dashboard/addresses/add")}
+                onClick={() =>
+                  router.push(
+                    `/dashboard/addresses/add?redirect=${encodeURIComponent(
+                      checkoutRedirect
+                    )}`
+                  )
+                }
                 className=" inline-flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded-xl text-sm font-medium hover:bg-gray-900 transition-all duration-200 shadow-sm"
               >
                 <Plus className="w-4 h-4" />
@@ -215,7 +251,7 @@ export default function AddressSelector({
                   <input
                     type="radio"
                     checked={isSelected}
-                    onClick={() => {
+                    onChange={() => {
                       setSelected(address.id);
                       setOpenMenu(null);
                     }}
@@ -250,7 +286,9 @@ export default function AddressSelector({
                               e.stopPropagation();
                               setOpenMenu(null);
 
-                              // EDIT LOGIC
+                              router.push(
+                                `/dashboard/addresses/edit/${address.id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`
+                              );
                             }}
                             className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                           >
@@ -264,7 +302,7 @@ export default function AddressSelector({
                               e.stopPropagation();
                               setOpenMenu(null);
 
-                              // DELETE LOGIC
+                              deleteAddress(address.id);
                             }}
                             className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                           >

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import OrderSummary from "./OrderSummary";
 import AddressSelector from "./AddressSelector";
 import PaymentMethod from "./PaymentMethod";
+import CheckoutItems from "./CheckoutItems";
 import { useRouter, useSearchParams } from "next/navigation";
 
 declare global {
@@ -20,8 +21,7 @@ export default function CheckoutClient() {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
 
-  const [paymentMethod, setPaymentMethod] =
-    useState<"COD" | "ONLINE">("COD");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "ONLINE">("COD");
 
   const [loading, setLoading] = useState(false);
 
@@ -247,10 +247,8 @@ export default function CheckoutClient() {
   // =========================
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-
       {/* LEFT */}
       <div className="md:col-span-2 space-y-6">
-
         <div className="bg-white border rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">📍 Delivery Address</h2>
           <AddressSelector
@@ -261,30 +259,27 @@ export default function CheckoutClient() {
         </div>
 
         <div className="bg-white border rounded-2xl p-6 shadow-sm">
+          <CheckoutItems items={cartItems} />
+        </div>
+
+        <div className="bg-white border rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">💳 Payment Method</h2>
           <PaymentMethod method={paymentMethod} setMethod={setPaymentMethod} />
-          <p className="text-xs text-gray-500 mt-3">
-            🔒 100% Secure Payments
-          </p>
+          <p className="text-xs text-gray-500 mt-3">🔒 100% Secure Payments</p>
         </div>
 
         {/* RETRY + TIMER */}
         {retryOrder && (
           <div className="border border-red-300 bg-red-50 rounded-2xl p-6">
-
             <h3 className="text-red-600 font-semibold text-lg mb-2">
               ❌ Payment Failed
             </h3>
 
             {timeLeft > 0 ? (
               <>
-                <p className="text-sm mb-2">
-                  Retry before expiry
-                </p>
+                <p className="text-sm mb-2">Retry before expiry</p>
 
-                <p className="font-semibold mb-4">
-                  ⏳ {formatTime(timeLeft)}
-                </p>
+                <p className="font-semibold mb-4">⏳ {formatTime(timeLeft)}</p>
 
                 <button
                   onClick={handleRetry}
@@ -311,7 +306,6 @@ export default function CheckoutClient() {
 
       {/* RIGHT */}
       <div className="space-y-4">
-
         <div className="bg-white border rounded-2xl p-6 shadow-sm">
           <OrderSummary
             cartItems={cartItems}
@@ -321,9 +315,7 @@ export default function CheckoutClient() {
         </div>
 
         {loading && (
-          <p className="text-center text-sm text-gray-500">
-            ⏳ Processing...
-          </p>
+          <p className="text-center text-sm text-gray-500">⏳ Processing...</p>
         )}
       </div>
     </div>

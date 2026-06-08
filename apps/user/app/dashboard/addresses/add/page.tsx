@@ -23,7 +23,14 @@ export default function AddAddressPage() {
 
   const searchParams = useSearchParams();
 
-  const redirect = searchParams.get("redirect") || "/dashboard/addresses";
+  const rawRedirect = searchParams.get("redirect") || "/dashboard/addresses";
+
+  const redirect =
+    rawRedirect.startsWith("/checkout") ||
+    rawRedirect === "/dashboard/addresses" ||
+    rawRedirect === "/profile"
+      ? rawRedirect
+      : "/dashboard/addresses";
 
   const [form, setForm] = useState<{
     fullName: string;
@@ -80,11 +87,6 @@ export default function AddAddressPage() {
 
       const data = await res.json();
 
-      console.log({
-        status: res.status,
-        data,
-      });
-
       if (data?.[0]?.Status !== "Success") return;
 
       const office = data?.[0]?.PostOffice?.[0];
@@ -122,9 +124,15 @@ export default function AddAddressPage() {
             ...prev,
             city: address.city || address.town || address.village || "",
             state: address.state || "",
-            pincode: address.postcode || "",
-            line1:
-              address.road || address.suburb || address.neighbourhood || "",
+            pincode: (address.postcode || "").replace(/\D/g, ""),
+            line1: [
+              address.house_number,
+              address.road,
+              address.suburb,
+              address.neighbourhood,
+            ]
+              .filter(Boolean)
+              .join(", "),
           }));
 
           toast.success("Location detected successfully");
@@ -170,15 +178,10 @@ export default function AddAddressPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("HANDLE SUBMIT");
-
-    console.log("FORM DATA", form);
 
     if (loading) return;
 
     const parsed = addressSchema.safeParse(form);
-
-    console.log(parsed);
 
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -223,11 +226,6 @@ export default function AddAddressPage() {
 
       const data = await res.json();
 
-      console.log({
-        status: res.status,
-        data,
-      });
-
       if (!res.ok) {
         throw new Error(data.error || "Failed to save address");
       }
@@ -263,10 +261,17 @@ export default function AddAddressPage() {
           <button
             type="button"
             onClick={() => {
+              if (
+                isDirty &&
+                !window.confirm("You have unsaved changes. Leave this page?")
+              ) {
+                return;
+              }
+
               if (window.history.length > 1) {
                 router.back();
               } else {
-                router.push("/dashboard/addresses");
+                router.replace(redirect);
               }
             }}
             className="group relative h-11 w-11 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center transition-all duration-300 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50 active:scale-95"
@@ -373,7 +378,7 @@ export default function AddAddressPage() {
                       placeholder="Enter full name"
                       className={`${inputClass} ${
                         errors.fullName ? "border-red-500" : ""
-                      }pl-11 pr-4 py-3 text-sm resize-none outline-none`}
+                      } pl-11 pr-4 py-3 text-sm resize-none outline-none`}
                     />
                   </div>
                   {errors.fullName ? (
@@ -551,7 +556,7 @@ export default function AddAddressPage() {
                         errors.pincode
                           ? "border-red-500 focus:border-red-500"
                           : ""
-                      }pl-11 pr-4 py-3 text-sm resize-none outline-none`}
+                      } pl-11 pr-4 py-3 text-sm resize-none outline-none`}
                     />
 
                     {errors.pincode && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, MapPin, User, Phone, Home } from "lucide-react";
 import toast from "react-hot-toast";
 import { addressSchema } from "../../../../lib/validators/address";
@@ -17,6 +17,18 @@ export default function EditAddressPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+
+  const searchParams = useSearchParams();
+  const rawReturnTo = decodeURIComponent(
+    searchParams.get("returnTo") || "/dashboard/addresses"
+  );
+
+  const returnTo =
+    rawReturnTo.startsWith("/checkout") ||
+    rawReturnTo === "/dashboard/addresses" ||
+    rawReturnTo === "/profile"
+      ? rawReturnTo
+      : "/dashboard/addresses";
 
   const [form, setForm] = useState({
     fullName: "",
@@ -151,8 +163,9 @@ export default function EditAddressPage() {
 
       setIsDirty(false);
 
-      router.push("/dashboard/addresses");
       router.refresh();
+
+      router.replace(returnTo);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -211,11 +224,14 @@ export default function EditAddressPage() {
           <button
             type="button"
             onClick={() => {
-              if (window.history.length > 1) {
-                router.back();
-              } else {
-                router.push("/dashboard/addresses");
+              if (
+                isDirty &&
+                !window.confirm("You have unsaved changes. Leave this page?")
+              ) {
+                return;
               }
+
+              router.push(returnTo);
             }}
             className="group h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center transition-all duration-300 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md active:scale-95"
           >
