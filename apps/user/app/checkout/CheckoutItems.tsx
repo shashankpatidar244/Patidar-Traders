@@ -1,14 +1,15 @@
 "use client";
 
 import Image from "next/image";
-
+import { useRouter } from "next/navigation";
 interface Props {
   items: any[];
 }
 
 export default function CheckoutItems({ items }: Props) {
+  const router = useRouter();
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="border-b bg-gradient-to-r from-gray-50 to-white px-6 py-5">
         <div className="flex items-center justify-between">
@@ -21,7 +22,7 @@ export default function CheckoutItems({ items }: Props) {
       </div>
 
       {/* Items */}
-      <div className="p-5 space-y-4">
+      <div className="p-3 sm:p-4 space-y-4">
         {items.map((item) => {
           const product = item.product;
           const variant = item.variant;
@@ -37,11 +38,12 @@ export default function CheckoutItems({ items }: Props) {
           return (
             <div
               key={item.id}
-              className="group rounded-3xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-slate-300 hover:shadow-lg"
+              onClick={() => router.push(`/products/${product.id}`)}
+              className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-slate-300 hover:shadow-lg active:scale-[0.99]"
             >
               <div className="flex gap-4">
                 {/* Image */}
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
                   {imageSrc ? (
                     <Image
                       src={imageSrc}
@@ -58,20 +60,20 @@ export default function CheckoutItems({ items }: Props) {
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-1 justify-between gap-4">
+                <div className="flex flex-1 flex-col sm:flex-row gap-3">
                   {/* LEFT SIDE */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 text-[15px] leading-5">
+                    <h3 className="font-semibold text-slate-900 text-sm sm:text-[15px] leading-5">
                       {item.quantity} × {product?.name}
                     </h3>
 
                     {variant && (
-                      <div className="mt-2 inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      <div className="mt-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                         {variant.name}: {variant.value}
                       </div>
                     )}
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className="text-base font-bold text-slate-900">
                         ₹{sellingPrice.toLocaleString()}
                       </span>
@@ -82,7 +84,7 @@ export default function CheckoutItems({ items }: Props) {
                             ₹{variant.mrp.toLocaleString()}
                           </span>
 
-                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                             Save ₹
                             {(variant.mrp - sellingPrice).toLocaleString()}
                           </span>
@@ -100,7 +102,7 @@ export default function CheckoutItems({ items }: Props) {
                     <p className="text-xl font-bold text-slate-900">
                       ₹{subtotal.toLocaleString()}
                     </p>
-                    <div className="mt-3 inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                    <div className="mt-2 inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
                       Qty {item.quantity}
                     </div>
                   </div>
