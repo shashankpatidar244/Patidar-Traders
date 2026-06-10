@@ -24,13 +24,13 @@ export default function CheckoutClient() {
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "ONLINE">("COD");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("");
-  const [gateway, setGateway] = useState<"RAZORPAY" | "UPI" | "CARD">(
-    "RAZORPAY"
-  );
 
   const [processingPayment, setProcessingPayment] = useState(false);
-
   const [loading, setLoading] = useState(false);
+
+  const [paymentState, setPaymentState] = useState<
+    "READY" | "PROCESSING" | "VERIFYING" | "FAILED" | "SUCCESS"
+  >("READY");
 
   const [retryOrder, setRetryOrder] = useState<{
     orderId: number;
@@ -42,9 +42,7 @@ export default function CheckoutClient() {
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
-  // =========================
   // LOAD DATA
-  // =========================
   useEffect(() => {
     async function load() {
       const cartRes = await fetch("/api/cart");
@@ -77,9 +75,7 @@ export default function CheckoutClient() {
     load();
   }, [searchParams]);
 
-  // =========================
   // TIMER LOGIC
-  // =========================
   useEffect(() => {
     if (!expiresAt) return;
 
@@ -89,24 +85,21 @@ export default function CheckoutClient() {
 
       if (remaining <= 0) {
         clearInterval(interval);
-        setRetryOrder(null);
+
+        setPaymentState("FAILED");
+        setPaymentStatus("Payment session expired.");
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [expiresAt]);
 
-  function formatTime(ms: number) {
-    const totalSec = Math.floor(ms / 1000);
-    const min = Math.floor(totalSec / 60);
-    const sec = totalSec % 60;
-    return `${min}:${sec.toString().padStart(2, "0")}`;
-  }
-
+  // Online Checkout
   async function startOnlineCheckout() {
     try {
       setProcessingPayment(true);
       setLoading(true);
+      setPaymentState("PROCESSING");
 
       const itemsParam = searchParams.get("items");
 
@@ -132,11 +125,11 @@ export default function CheckoutClient() {
         return;
       }
 
-      setPaymentStatus("Order created successfully...");
+      setPaymentStatus("Order created. Preparing payment...");
 
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      setPaymentStatus("Creating Razorpay payment order...");
+      setPaymentStatus("Initializing secure payment...");
 
       await new Promise((resolve) => setTimeout(resolve, 700));
 
@@ -165,7 +158,8 @@ export default function CheckoutClient() {
         handler: async function (response: any) {
           setPaymentModalOpen(true);
 
-          setPaymentStatus("Verifying payment...");
+          setPaymentState("VERIFYING");
+          setPaymentStatus("Payment received. Verifying...");
 
           const verifyRes = await fetch("/api/payment/verify", {
             method: "POST",
@@ -179,32 +173,42 @@ export default function CheckoutClient() {
 
           if (verifyData.success) {
             setPaymentStatus("Payment successful. Redirecting...");
+            setPaymentState("SUCCESS");
+
+            setRetryOrder(null);
+            setExpiresAt(null);
+            setTimeLeft(0);
 
             setTimeout(() => {
               setLoading(false);
               setProcessingPayment(false);
               setPaymentModalOpen(false);
 
-              router.push(`/order-success?orderId=${data.orderId}`);
+              router.push(`/checkout/order-success?orderId=${data.orderId}`);
             }, 1500);
-          } else {
-            setLoading(false);
-            setProcessingPayment(false);
-            setPaymentModalOpen(false);
 
-            setRetryOrder({
-              orderId: data.orderId,
-              razorpayOrderId: data.razorpayOrderId,
-              amount: data.amount,
-            });
+            return;
           }
+
+          setLoading(false);
+          setProcessingPayment(false);
+
+          setPaymentState("FAILED");
+          setPaymentStatus(verifyData.error || "Payment verification failed.");
+
+          setRetryOrder({
+            orderId: data.orderId,
+            razorpayOrderId: data.razorpayOrderId,
+            amount: data.amount,
+          });
         },
 
         modal: {
           ondismiss: function () {
             setLoading(false);
-            setProcessingPayment(false);
-            setPaymentModalOpen(false);
+
+            setPaymentState("FAILED");
+            setPaymentStatus("Payment cancelled by user.");
 
             setRetryOrder({
               orderId: data.orderId,
@@ -219,10 +223,10 @@ export default function CheckoutClient() {
         },
 
         method: {
-          upi: gateway === "UPI",
-          card: gateway === "CARD",
-          netbanking: gateway === "RAZORPAY",
-          wallet: gateway === "RAZORPAY",
+          upi: true,
+          card: true,
+          netbanking: true,
+          wallet: true,
         },
       };
 
@@ -245,26 +249,34 @@ export default function CheckoutClient() {
     }
   }
 
-  // =========================
   // CHECKOUT
-  // =========================
   async function handleCheckout() {
     if (!selectedAddress) {
       alert("Select address");
       return;
     }
 
-    // ONLINE
+    // ONLINE FLOW
     if (paymentMethod === "ONLINE") {
-      setGateway("RAZORPAY");
       setProcessingPayment(false);
+      setPaymentState("READY");
+      setPaymentStatus("Ready to start secure payment.");
       setPaymentModalOpen(true);
+      setRetryOrder(null);
+      setExpiresAt(null);
+      setTimeLeft(0);
       return;
     }
 
-    // COD
+    // COD FLOW
     try {
       setLoading(true);
+
+      setProcessingPayment(true);
+      setPaymentModalOpen(true);
+
+      setPaymentState("PROCESSING");
+      setPaymentStatus("Creating your order...");
 
       const itemsParam = searchParams.get("items");
 
@@ -280,77 +292,189 @@ export default function CheckoutClient() {
       const data = await res.json();
 
       if (!data.success) {
+        setProcessingPayment(false);
+        setPaymentModalOpen(false);
+        setLoading(false);
+
         alert(data.error || "Checkout failed");
         return;
       }
 
-      router.push(`/order-success?orderId=${data.orderId}`);
+      setPaymentStatus("Order confirmed successfully. Redirecting...");
+
+      setTimeout(() => {
+        setLoading(false);
+        setProcessingPayment(false);
+        setPaymentModalOpen(false);
+
+        router.push(`/checkout/order-success?orderId=${data.orderId}`);
+      }, 1200);
     } catch (error) {
       console.error(error);
-      alert("Something went wrong");
-    } finally {
+
+      setProcessingPayment(false);
+      setPaymentModalOpen(false);
       setLoading(false);
+
+      alert("Something went wrong");
     }
   }
 
-  // =========================
   // RETRY
-  // =========================
   async function handleRetry() {
-    if (!retryOrder) return;
+    try {
+      if (!retryOrder) return;
 
-    if (timeLeft <= 0) {
-      alert("Order expired. Please place a new order.");
-      return;
+      if (timeLeft <= 0) {
+        alert("Order expired. Please place a new order.");
+        return;
+      }
+
+      setLoading(true);
+
+      const res = await fetch("/api/payment/retry", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: retryOrder.orderId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setLoading(false);
+        alert(data.error || "Unable to retry payment");
+        return;
+      }
+
+      if (!window.Razorpay) {
+        setLoading(false);
+        setProcessingPayment(false);
+        setPaymentModalOpen(false);
+
+        alert("Razorpay SDK not loaded");
+        return;
+      }
+
+      setProcessingPayment(true);
+      setPaymentModalOpen(true);
+      setPaymentState("PROCESSING");
+      setPaymentStatus("Preparing payment retry...");
+
+      const rzp = new window.Razorpay({
+        key: data.key || process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+
+        amount: data.amount,
+        currency: "INR",
+        order_id: data.razorpayOrderId,
+
+        name: "Your Store",
+        description: "Secure Payment",
+
+        handler: async function (response: any) {
+          try {
+            setPaymentModalOpen(true);
+            setPaymentState("VERIFYING");
+            setPaymentStatus("Payment received. Verifying...");
+
+            const verifyRes = await fetch("/api/payment/verify", {
+              method: "POST",
+              body: JSON.stringify({
+                ...response,
+                orderId: retryOrder.orderId,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (!verifyData.success) {
+              setLoading(false);
+              setProcessingPayment(false);
+              setPaymentState("FAILED");
+              setPaymentStatus(
+                verifyData.error || "Payment verification failed."
+              );
+
+              setRetryOrder({
+                orderId: data.orderId,
+                razorpayOrderId: data.razorpayOrderId,
+                amount: data.amount,
+              });
+
+              return;
+            }
+
+            setPaymentStatus("Payment successful. Redirecting...");
+            setPaymentState("SUCCESS");
+
+            setRetryOrder(null);
+            setExpiresAt(null);
+            setTimeLeft(0);
+
+            setTimeout(() => {
+              setLoading(false);
+              setProcessingPayment(false);
+              setPaymentModalOpen(false);
+
+              router.push(
+                `/checkout/order-success?orderId=${retryOrder.orderId}`
+              );
+            }, 1500);
+          } catch (error) {
+            console.error(error);
+
+            setLoading(false);
+            setProcessingPayment(false);
+            setPaymentModalOpen(false);
+
+            alert("Payment verification failed");
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+
+            setPaymentState("FAILED");
+            setPaymentStatus("Payment cancelled by user.");
+
+            setRetryOrder({
+              orderId: data.orderId,
+              razorpayOrderId: data.razorpayOrderId,
+              amount: data.amount,
+            });
+          },
+        },
+
+        theme: {
+          color: "#111827",
+        },
+
+        method: {
+          upi: true,
+          card: true,
+          netbanking: true,
+          wallet: true,
+        },
+      });
+
+      setPaymentStatus("Opening secure payment gateway...");
+
+      setTimeout(() => {
+        setPaymentModalOpen(false);
+        rzp.open();
+      }, 800);
+    } catch (error) {
+      console.error(error);
+
+      setLoading(false);
+      setProcessingPayment(false);
+      setPaymentModalOpen(false);
+
+      alert("Retry failed");
     }
-
-    const res = await fetch("/api/payment/retry", {
-      method: "POST",
-      body: JSON.stringify({ orderId: retryOrder.orderId }),
-    });
-
-    const data = await res.json();
-
-    setProcessingPayment(true);
-    setPaymentModalOpen(true);
-    setPaymentStatus("Opening Razorpay...");
-
-    const rzp = new window.Razorpay({
-      key: data.key || process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-      order_id: data.razorpayOrderId,
-      amount: data.amount,
-
-      handler: async function (response: any) {
-        setPaymentStatus("Verifying payment...");
-
-        const verifyRes = await fetch("/api/payment/verify", {
-          method: "POST",
-          body: JSON.stringify({
-            ...response,
-            orderId: retryOrder.orderId,
-          }),
-        });
-
-        const verifyData = await verifyRes.json();
-
-        if (verifyData.success) {
-          setPaymentStatus("Payment successful. Redirecting...");
-
-          setTimeout(() => {
-            router.push(`/order-success?orderId=${retryOrder.orderId}`);
-          }, 1200);
-        } else {
-          setPaymentModalOpen(false);
-        }
-      },
-    });
-
-    rzp.open();
   }
 
-  // =========================
-  // UI
-  // =========================
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* LEFT */}
@@ -367,41 +491,6 @@ export default function CheckoutClient() {
         <div className="bg-white border rounded-2xl p-6 shadow-sm">
           <CheckoutItems items={cartItems} />
         </div>
-
-        {/* RETRY + TIMER */}
-        {retryOrder && (
-          <div className="border border-red-300 bg-red-50 rounded-2xl p-6">
-            <h3 className="text-red-600 font-semibold text-lg mb-2">
-              ❌ Payment Failed
-            </h3>
-
-            {timeLeft > 0 ? (
-              <>
-                <p className="text-sm mb-2">Retry before expiry</p>
-
-                <p className="font-semibold mb-4">⏳ {formatTime(timeLeft)}</p>
-
-                <button
-                  onClick={handleRetry}
-                  className="bg-red-600 text-white px-5 py-2 rounded-lg"
-                >
-                  Retry Payment
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="mb-4">⛔ Order expired</p>
-
-                <button
-                  onClick={() => router.push("/cart")}
-                  className="bg-black text-white px-5 py-2 rounded-lg"
-                >
-                  Go to Cart
-                </button>
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       {/* RIGHT */}
@@ -424,11 +513,12 @@ export default function CheckoutClient() {
       <PaymentProcessingModal
         open={paymentModalOpen}
         status={paymentStatus}
+        paymentState={paymentState}
         paymentMethod={paymentMethod}
-        gateway={gateway}
-        setGateway={setGateway}
         processing={processingPayment}
+        timeLeft={timeLeft}
         onContinue={startOnlineCheckout}
+        onRetry={handleRetry}
       />
     </div>
   );

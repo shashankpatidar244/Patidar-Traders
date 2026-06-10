@@ -1,6 +1,6 @@
 "use client"
 
-import CheckoutStepper from "../checkout/CheckoutStepper"
+import CheckoutStepper from "../CheckoutStepper"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
