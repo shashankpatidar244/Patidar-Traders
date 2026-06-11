@@ -206,6 +206,8 @@ export default function CheckoutClient() {
         modal: {
           ondismiss: function () {
             setLoading(false);
+            setProcessingPayment(false);
+            setPaymentModalOpen(true);
 
             setPaymentState("FAILED");
             setPaymentStatus("Payment cancelled by user.");
@@ -235,7 +237,6 @@ export default function CheckoutClient() {
       setPaymentStatus("Opening secure payment gateway...");
 
       setTimeout(() => {
-        setPaymentModalOpen(false);
         rzp.open();
       }, 1000);
     } catch (error) {
@@ -390,6 +391,7 @@ export default function CheckoutClient() {
             if (!verifyData.success) {
               setLoading(false);
               setProcessingPayment(false);
+              setPaymentModalOpen(true);
               setPaymentState("FAILED");
               setPaymentStatus(
                 verifyData.error || "Payment verification failed."
@@ -434,7 +436,8 @@ export default function CheckoutClient() {
         modal: {
           ondismiss: function () {
             setLoading(false);
-
+            setProcessingPayment(false);
+            setPaymentModalOpen(true);
             setPaymentState("FAILED");
             setPaymentStatus("Payment cancelled by user.");
 
@@ -461,7 +464,6 @@ export default function CheckoutClient() {
       setPaymentStatus("Opening secure payment gateway...");
 
       setTimeout(() => {
-        setPaymentModalOpen(false);
         rzp.open();
       }, 800);
     } catch (error) {
@@ -475,41 +477,119 @@ export default function CheckoutClient() {
     }
   }
 
+  // Close
+  function handleClosePaymentModal() {
+    setPaymentModalOpen(false);
+
+    setProcessingPayment(false);
+
+    if (paymentState === "FAILED") {
+      setPaymentState("READY");
+    }
+  }
+
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* LEFT */}
-      <div className="md:col-span-2 space-y-6">
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">📍 Delivery Address</h2>
-          <AddressSelector
-            addresses={addresses}
-            selected={selectedAddress}
-            setSelected={setSelectedAddress}
-          />
+    <>
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Checkout
+          </h1>
+  
+          <p className="text-gray-500 mt-1">
+            Complete your order securely
+          </p>
         </div>
-
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <CheckoutItems items={cartItems} />
+  
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* LEFT */}
+          <div className="lg:col-span-8 space-y-6">
+  
+            {/* Address */}
+            <div className="bg-white border rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">
+                  1
+                </div>
+  
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    Delivery Address
+                  </h2>
+  
+                  <p className="text-sm text-gray-500">
+                    Choose where you want your order delivered
+                  </p>
+                </div>
+              </div>
+  
+              <AddressSelector
+                addresses={addresses}
+                selected={selectedAddress}
+                setSelected={setSelectedAddress}
+              />
+            </div>
+  
+            {/* Items */}
+            <div className="bg-white border rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">
+                  2
+                </div>
+  
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    Review Items
+                  </h2>
+  
+                  <p className="text-sm text-gray-500">
+                    {cartItems.length} item(s) in your order
+                  </p>
+                </div>
+              </div>
+  
+              <CheckoutItems items={cartItems} />
+            </div>
+          </div>
+  
+          {/* RIGHT */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-24">
+              <div className="bg-white border rounded-3xl shadow-sm overflow-hidden">
+  
+                {/* Header */}
+                <div className="px-6 py-5 border-b bg-gray-50">
+                  <h2 className="font-semibold text-lg">
+                    Order Summary
+                  </h2>
+  
+                  <p className="text-sm text-gray-500">
+                    Review and place your order
+                  </p>
+                </div>
+  
+                <div className="p-6">
+                  <OrderSummary
+                    cartItems={cartItems}
+                    loading={loading}
+                    onCheckout={handleCheckout}
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                  />
+                </div>
+              </div>
+  
+              {loading && (
+                <div className="mt-4 text-center text-sm text-gray-500">
+                  Processing your order...
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* RIGHT */}
-      <div className="space-y-4">
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <OrderSummary
-            cartItems={cartItems}
-            loading={loading}
-            onCheckout={handleCheckout}
-            paymentMethod={paymentMethod}
-            setPaymentMethod={setPaymentMethod}
-          />
-        </div>
-
-        {loading && (
-          <p className="text-center text-sm text-gray-500">⏳ Processing...</p>
-        )}
-      </div>
-
+  
       <PaymentProcessingModal
         open={paymentModalOpen}
         status={paymentStatus}
@@ -519,7 +599,8 @@ export default function CheckoutClient() {
         timeLeft={timeLeft}
         onContinue={startOnlineCheckout}
         onRetry={handleRetry}
+        onClose={handleClosePaymentModal}
       />
-    </div>
+    </>
   );
 }

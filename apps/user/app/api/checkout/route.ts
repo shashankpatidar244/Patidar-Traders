@@ -10,9 +10,7 @@ import {
 } from "@prisma/client";
 import Razorpay from "razorpay";
 
-// ======================
 // Razorpay Instance
-// ======================
 function getRazorpay() {
   if (!process.env.RAZORPAY_KEY || !process.env.RAZORPAY_SECRET) {
     throw new Error("Razorpay env missing");
@@ -24,16 +22,12 @@ function getRazorpay() {
   });
 }
 
-// ======================
 // Types
-// ======================
 type CartItemWithRelations = Prisma.CartItemGetPayload<{
   include: { product: true; variant: true };
 }>;
 
-// ======================
 // API
-// ======================
 export async function POST(req: Request) {
   try {
     const user = await getUserFromRequest();
@@ -44,9 +38,7 @@ export async function POST(req: Request) {
 
     const { paymentMethod, addressId, selectedItems } = await req.json();
 
-    // ======================
     // FETCH CART (FILTERED)
-    // ======================
     let cartItems: CartItemWithRelations[];
 
     if (selectedItems) {
@@ -70,45 +62,55 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cart empty" }, { status: 400 });
     }
 
-    // ======================
     // TOTAL CALCULATION
-    // ======================
+    for (const item of cartItems) {
+      if (!item.variant) {
+        return NextResponse.json(
+          {
+            error: `${item.product.name} variant not found`,
+          },
+          { status: 400 }
+        );
+      }
+    }
     const total = cartItems.reduce((sum: number, item) => {
       return sum + Number(item.variant?.sellingPrice ?? 0) * item.quantity;
     }, 0);
 
-    // ======================
     // ADDRESS VALIDATION
-    // ======================
     const address = await prisma.address.findFirst({
       where: { id: Number(addressId), userId: user.id },
     });
 
     if (!address) {
-      return NextResponse.json(
-        { error: "Address not found" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Address not found" }, { status: 400 });
     }
 
-    // ======================
-    // EXPIRY (15 min)
-    // ======================
+    // EXPIRY (10 min)
     const EXPIRY_MINUTES = 10;
     const expiresAt = new Date(Date.now() + EXPIRY_MINUTES * 60 * 1000);
 
-    // ======================
     // CREATE ORDER (TRANSACTION)
-    // ======================
+    const selectedCartIds = cartItems.map((item) => item.id);
     const order = await prisma.$transaction(async (tx) => {
       // STOCK CHECK
       for (const item of cartItems) {
-        const variant = await tx.productVariant.findUnique({
-          where: { id: item.variantId! },
+        const updated = await tx.productVariant.updateMany({
+          where: {
+            id: item.variantId!,
+            stock: {
+              gte: item.quantity,
+            },
+          },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
         });
 
-        if (!variant || variant.stock < item.quantity) {
-          throw new Error(`${item.product.name} out of stock`);
+        if (updated.count === 0) {
+          throw new Error(`${item.product.name} is out of stock`);
         }
       }
 
@@ -120,14 +122,14 @@ export async function POST(req: Request) {
 
           status: OrderStatus.PENDING,
           paymentMethod:
-            paymentMethod === "ONLINE"
-              ? PaymentMethod.CARD
-              : PaymentMethod.COD,
+            paymentMethod === "ONLINE" ? PaymentMethod.CARD : PaymentMethod.COD,
 
           paymentStatus: PaymentStatus.PENDING,
           deliveryStatus: DeliveryStatus.PENDING,
 
           expiresAt: paymentMethod === "ONLINE" ? expiresAt : null,
+
+          selectedCartIds,
 
           shippingName: address.fullName,
           shippingPhone: address.phone,
@@ -139,7 +141,7 @@ export async function POST(req: Request) {
         },
       });
 
-      // 🧾 ORDER ITEMS
+      // ORDER ITEMS
       await tx.orderItem.createMany({
         data: cartItems.map((item) => ({
           orderId: newOrder.id,
@@ -153,22 +155,11 @@ export async function POST(req: Request) {
       return newOrder;
     });
 
-    // ======================
     // COD FLOW
-    // ======================
     if (paymentMethod === "COD") {
       const ids = cartItems.map((item) => item.id);
 
       await prisma.$transaction([
-        ...cartItems.map((item) =>
-          prisma.productVariant.update({
-            where: { id: item.variantId! },
-            data: {
-              stock: { decrement: item.quantity },
-            },
-          })
-        ),
-
         prisma.order.update({
           where: { id: order.id },
           data: {
@@ -188,14 +179,12 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        type: "COD",  
+        type: "COD",
         orderId: order.id,
       });
     }
 
-    // ======================
     // ONLINE FLOW (RAZORPAY)
-    // ======================
     if (paymentMethod === "ONLINE") {
       const razorpay = getRazorpay();
 
@@ -213,6 +202,34 @@ export async function POST(req: Request) {
         });
       } catch (err) {
         console.error("Razorpay error:", err);
+
+        await prisma.$transaction([
+          prisma.orderItem.deleteMany({
+            where: {
+              orderId: order.id,
+            },
+          }),
+
+          prisma.order.delete({
+            where: {
+              id: order.id,
+            },
+          }),
+
+          ...cartItems.map((item) =>
+            prisma.productVariant.update({
+              where: {
+                id: item.variantId!,
+              },
+              data: {
+                stock: {
+                  increment: item.quantity,
+                },
+              },
+            })
+          ),
+        ]);
+
         throw new Error("Payment gateway error");
       }
 
@@ -235,7 +252,6 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ error: "Invalid method" }, { status: 400 });
-
   } catch (err: any) {
     console.error("Checkout error:", err);
 

@@ -7,11 +7,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-    } = body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
 
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_SECRET!)
@@ -36,7 +32,6 @@ export async function POST(req: Request) {
     }
 
     await prisma.$transaction(async (tx) => {
-
       await tx.order.update({
         where: { id: order.id },
         data: {
@@ -48,24 +43,20 @@ export async function POST(req: Request) {
         },
       });
 
-      for (const item of order.items) {
-        if (!item.variantId) continue;
-
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: {
-            stock: { decrement: item.quantity },
-          },
-        });
-      }
+      // DELETE ONLY SELECTED ITEMS
+      const selectedIds = (order.selectedCartIds as number[]) || [];
 
       await tx.cartItem.deleteMany({
-        where: { userId: order.userId },
+        where: {
+          userId: order.userId,
+          id: {
+            in: selectedIds,
+          },
+        },
       });
     });
 
     return NextResponse.json({ success: true });
-
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Verification failed" }, { status: 500 });

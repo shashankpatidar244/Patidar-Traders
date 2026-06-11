@@ -31,6 +31,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order cancelled" }, { status: 400 });
     }
 
+    // Prevent retry if expires
+    if (order.expiresAt && new Date(order.expiresAt) < new Date()) {
+      return NextResponse.json(
+        { error: "Payment session expired" },
+        { status: 400 }
+      );
+    }
+
     const razorpay = getRazorpay();
 
     const razorpayOrder = await razorpay.orders.create({
@@ -48,16 +56,12 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({
-        success: true,
-        razorpayOrderId: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        key: process.env.RAZORPAY_KEY, 
-      });
-
+      success: true,
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      key: process.env.RAZORPAY_KEY,
+    });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
