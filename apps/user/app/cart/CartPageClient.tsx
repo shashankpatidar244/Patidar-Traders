@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react";
 import CartItem from "./CartItem";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 export default function CartPageClient({ cartItems }: any) {
+  const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
 
   useEffect(() => {
@@ -73,7 +76,66 @@ export default function CartPageClient({ cartItems }: any) {
   return (
     <div className="bg-gray-100 min-h-screen py-6">
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/dashboard");
+                }
+              }}
+              className="group h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center transition-all duration-300 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md active:scale-95"
+            >
+              <ArrowLeft
+                size={20}
+                className="text-slate-700 transition-all duration-300 group-hover:text-indigo-600 group-hover:-translate-x-0.5"
+              />
+            </button>
+
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Shopping Cart
+              </h1>
+            </div>
+          </div>
+
+          <Link
+            href="/products"
+            className="
+                        inline-flex
+                        items-center
+                        justify-center
+                        gap-2
+
+                        px-5
+                        py-3
+
+                        rounded-2xl
+
+                        bg-gradient-to-r
+                        from-orange-500
+                        to-orange-600
+
+                        text-white
+                        font-semibold
+
+                        shadow-lg
+                        shadow-orange-200/50
+
+                        hover:scale-[1.02]
+                        hover:shadow-xl
+
+                        transition-all
+                        duration-300
+                      "
+          >
+            <span className="text-lg">+</span>
+            Add More Items
+          </Link>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* CART ITEMS */}

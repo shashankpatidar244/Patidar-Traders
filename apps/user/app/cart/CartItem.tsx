@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function CartItem({ item, selected, onSelect }: any) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function update(type: "inc" | "dec") {
@@ -58,7 +60,8 @@ export default function CartItem({ item, selected, onSelect }: any) {
   return (
     <>
       <div
-        className={` group flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-3xl transition-all duration-500 relative overflow-hidden 
+        onClick={() => router.push(`/products/${item.product.id}`)}
+        className={` group flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-3xl transition-all duration-500 relative overflow-hidden cursor-pointer 
   ${
     selected
       ? "bg-orange-50 border-orange-200 shadow-md"
@@ -71,6 +74,7 @@ export default function CartItem({ item, selected, onSelect }: any) {
           <input
             type="checkbox"
             checked={selected}
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => onSelect(item, e.target.checked)}
             className="w-5 h-5 cursor-pointer"
           />
@@ -209,6 +213,7 @@ export default function CartItem({ item, selected, onSelect }: any) {
           </div>
         ) : (
           <div
+            onClick={(e) => e.stopPropagation()}
             className="
         flex
         items-center
@@ -226,7 +231,10 @@ export default function CartItem({ item, selected, onSelect }: any) {
       "
           >
             <button
-              onClick={() => update("dec")}
+              onClick={(e) => {
+                e.stopPropagation();
+                update("dec");
+              }}
               disabled={loading}
               className="
           w-10
@@ -265,7 +273,10 @@ export default function CartItem({ item, selected, onSelect }: any) {
             </span>
 
             <button
-              onClick={() => update("inc")}
+              onClick={(e) => {
+                e.stopPropagation();
+                update("inc");
+              }}
               disabled={loading}
               className="
           w-10
@@ -304,7 +315,10 @@ export default function CartItem({ item, selected, onSelect }: any) {
         {/* Actions */}
         <div className="flex flex-col gap-2">
           <button
-            onClick={saveForLater}
+            onClick={(e) => {
+              e.stopPropagation();
+              saveForLater();
+            }}
             className="
         px-3
         py-1.5
@@ -326,7 +340,10 @@ export default function CartItem({ item, selected, onSelect }: any) {
           </button>
 
           <button
-            onClick={remove}
+            onClick={(e) => {
+              e.stopPropagation();
+              remove();
+            }}
             className="
         px-3
         py-1.5
