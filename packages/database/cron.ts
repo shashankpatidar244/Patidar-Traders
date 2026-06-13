@@ -1,28 +1,25 @@
 import "server-only";
 import cron from "node-cron";
 import { prisma } from "./index";
-import { OrderStatus, PaymentStatus } from "@prisma/client";
+import {
+  OrderStatus,
+  PaymentStatus,
+} from "@prisma/client";
 
 export function startCronJobs() {
   console.log("🟢 Cron started");
 
-  // ==================================================
-  // AUTO CANCEL EXPIRED UNPAID ORDERS
-  // ==================================================
-  // TESTING:
-  // "* * * * *"  => every 1 minute
-  //
-  // PRODUCTION:
-  // "*/5 * * * *" => every 5 minutes
-  // ==================================================
+  
+    // TEST
+    // "* * * * *"
+   
+    // PROD
+    // "*/10 * * * *"
+   
 
   cron.schedule("*/10 * * * *", async () => {
     try {
       const now = new Date();
-
-      // ==========================================
-      // FIND EXPIRED ORDERS
-      // ==========================================
 
       const orders = await prisma.order.findMany({
         where: {
@@ -40,26 +37,38 @@ export function startCronJobs() {
         },
       });
 
-      // ==========================================
-      // NOTHING FOUND
-      // ==========================================
-
       if (!orders.length) {
         console.log("✅ No expired orders");
         return;
       }
 
-      console.log(`⚠️ ${orders.length} expired orders found`);
-
-      // ==========================================
-      // CANCEL ORDERS
-      // ==========================================
+      console.log(
+        `⚠️ ${orders.length} expired orders found`
+      );
 
       for (const order of orders) {
         await prisma.$transaction(async (tx) => {
-          // ==============================
-          // CANCEL ORDER
-          // ==============================
+          /**
+           * IMPORTANT
+           * Prevent double execution
+           */
+
+          const latestOrder =
+            await tx.order.findUnique({
+              where: {
+                id: order.id,
+              },
+            });
+
+          if (
+            !latestOrder ||
+            latestOrder.status !==
+              OrderStatus.PENDING ||
+            latestOrder.paymentStatus !==
+              PaymentStatus.PENDING
+          ) {
+            return;
+          }
 
           await tx.order.update({
             where: {
@@ -68,13 +77,14 @@ export function startCronJobs() {
 
             data: {
               status: OrderStatus.CANCELLED,
-              paymentStatus: PaymentStatus.FAILED
+              paymentStatus:
+                PaymentStatus.FAILED,
             },
           });
 
-          // ==============================
-          // RESTORE STOCK
-          // ==============================
+          /**
+           * Restore stock
+           */
 
           for (const item of order.items) {
             if (!item.variantId) continue;
@@ -91,12 +101,17 @@ export function startCronJobs() {
               },
             });
           }
-        });
 
-        console.log(`❌ Order #${order.id} auto cancelled`);
+          console.log(
+            `❌ Order #${order.id} auto cancelled`
+          );
+        });
       }
     } catch (error) {
-      console.error("❌ Cron Error:", error);
+      console.error(
+        "❌ Cron Error:",
+        error
+      );
     }
   });
 }

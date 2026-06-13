@@ -197,6 +197,17 @@ model OrderItem {
   @@index([orderId])
 }
 
+model PaymentWebhookEvent {
+  id Int @id @default(autoincrement())
+
+  eventId   String @unique
+  eventType String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model CartItem {
   id        Int             @id @default(autoincrement())
   userId    Int

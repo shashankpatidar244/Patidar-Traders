@@ -1,10 +1,9 @@
 --- Folder Structure ---
-
 [.vscode]
     └── settings.json
 [apps]
     ├── [admin]
-        ├── [app]
+         ├── [app]
             ├── [api]
                 ├── [admin]
                     └── [analytics]
@@ -303,6 +302,8 @@
                 ├── [cart]
                     ├── [count]
                         └── route.ts
+                    ├── [item]
+                        └── route.ts
                     └── route.ts
                 ├── [checkout]
                     └── route.ts
@@ -338,10 +339,13 @@
             ├── [checkout]
                 ├── AddressSelector.tsx
                 ├── CheckoutClient.tsx
+                ├── CheckoutItems.tsx
                 ├── CheckoutStepper.tsx
+                ├── [order-success]
+                    └── page.tsx
                 ├── OrderSummary.tsx
                 ├── page.tsx
-                └── PaymentMethod.tsx
+                └── PaymentProcessingModal.tsx
             ├── [dashboard]
                 ├── [addresses]
                     ├── [add]
@@ -389,8 +393,6 @@
                 └── [validators]
                     ├── address.ts
                     └── auth.ts
-            ├── [order-success]
-                └── page.tsx
             ├── page.tsx
             ├── [products]
                 ├── page.tsx
@@ -450,6 +452,8 @@ package.json
                 ├── [20260519190311_init]
                     └── migration.sql
                 ├── [20260603200905_add_address_type]
+                    └── migration.sql
+                ├── [20260611200707_add_selected_cart_ids]
                     └── migration.sql
                 └── migration_lock.toml
             ├── schema.prisma

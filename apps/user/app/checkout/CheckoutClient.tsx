@@ -29,7 +29,12 @@ export default function CheckoutClient() {
   const [loading, setLoading] = useState(false);
 
   const [paymentState, setPaymentState] = useState<
-    "READY" | "PROCESSING" | "VERIFYING" | "FAILED" | "SUCCESS"
+    | "READY"
+    | "PROCESSING"
+    | "VERIFYING"
+    | "WAITING_WEBHOOK"
+    | "FAILED"
+    | "SUCCESS"
   >("READY");
 
   const [retryOrder, setRetryOrder] = useState<{
@@ -81,18 +86,77 @@ export default function CheckoutClient() {
 
     const interval = setInterval(() => {
       const remaining = Math.max(0, expiresAt - Date.now());
+
       setTimeLeft(remaining);
 
-      if (remaining <= 0) {
+      if (remaining <= 0 && paymentState !== "SUCCESS") {
         clearInterval(interval);
 
         setPaymentState("FAILED");
+
         setPaymentStatus("Payment session expired.");
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [expiresAt]);
+  }, [expiresAt, paymentState]);
+
+  async function startOrderStatusPolling(orderId: number) {
+    let attempts = 0;
+
+    const interval = setInterval(async () => {
+      attempts++;
+
+      try {
+        const res = await fetch(`/api/payment/payment-status/${orderId}`);
+
+        const data = await res.json();
+
+        if (data.paymentStatus === "PAID") {
+          clearInterval(interval);
+
+          setPaymentState("SUCCESS");
+          setPaymentStatus("Payment confirmed successfully.");
+
+          setRetryOrder(null);
+          setExpiresAt(null);
+          setTimeLeft(0);
+
+          setTimeout(() => {
+            setLoading(false);
+            setProcessingPayment(false);
+            setPaymentModalOpen(false);
+
+            router.push(`/checkout/order-success?orderId=${orderId}`);
+          }, 1500);
+
+          return;
+        }
+
+        if (data.paymentStatus === "FAILED" || data.status === "CANCELLED") {
+          clearInterval(interval);
+
+          setPaymentState("FAILED");
+
+          setPaymentStatus("Payment failed or cancelled.");
+
+          return;
+        }
+
+        if (attempts >= 60) {
+          clearInterval(interval);
+
+          setPaymentState("FAILED");
+
+          setPaymentStatus(
+            "Payment confirmation timeout. Please check your orders."
+          );
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }, 3000);
+  }
 
   // Online Checkout
   async function startOnlineCheckout() {
@@ -155,52 +219,16 @@ export default function CheckoutClient() {
         name: "Your Store",
         description: "Secure Payment",
 
-        handler: async function (response: any) {
+        handler: async function () {
           setPaymentModalOpen(true);
 
-          setPaymentState("VERIFYING");
-          setPaymentStatus("Payment received. Verifying...");
+          setPaymentState("WAITING_WEBHOOK");
 
-          const verifyRes = await fetch("/api/payment/verify", {
-            method: "POST",
-            body: JSON.stringify({
-              ...response,
-              orderId: data.orderId,
-            }),
-          });
+          setPaymentStatus(
+            "Payment received. Waiting for bank confirmation..."
+          );
 
-          const verifyData = await verifyRes.json();
-
-          if (verifyData.success) {
-            setPaymentStatus("Payment successful. Redirecting...");
-            setPaymentState("SUCCESS");
-
-            setRetryOrder(null);
-            setExpiresAt(null);
-            setTimeLeft(0);
-
-            setTimeout(() => {
-              setLoading(false);
-              setProcessingPayment(false);
-              setPaymentModalOpen(false);
-
-              router.push(`/checkout/order-success?orderId=${data.orderId}`);
-            }, 1500);
-
-            return;
-          }
-
-          setLoading(false);
-          setProcessingPayment(false);
-
-          setPaymentState("FAILED");
-          setPaymentStatus(verifyData.error || "Payment verification failed.");
-
-          setRetryOrder({
-            orderId: data.orderId,
-            razorpayOrderId: data.razorpayOrderId,
-            amount: data.amount,
-          });
+          startOrderStatusPolling(data.orderId);
         },
 
         modal: {
@@ -372,65 +400,16 @@ export default function CheckoutClient() {
         name: "Your Store",
         description: "Secure Payment",
 
-        handler: async function (response: any) {
-          try {
-            setPaymentModalOpen(true);
-            setPaymentState("VERIFYING");
-            setPaymentStatus("Payment received. Verifying...");
+        handler: async function () {
+          setPaymentModalOpen(true);
 
-            const verifyRes = await fetch("/api/payment/verify", {
-              method: "POST",
-              body: JSON.stringify({
-                ...response,
-                orderId: retryOrder.orderId,
-              }),
-            });
+          setPaymentState("WAITING_WEBHOOK");
 
-            const verifyData = await verifyRes.json();
+          setPaymentStatus(
+            "Payment received. Waiting for bank confirmation..."
+          );
 
-            if (!verifyData.success) {
-              setLoading(false);
-              setProcessingPayment(false);
-              setPaymentModalOpen(true);
-              setPaymentState("FAILED");
-              setPaymentStatus(
-                verifyData.error || "Payment verification failed."
-              );
-
-              setRetryOrder({
-                orderId: data.orderId,
-                razorpayOrderId: data.razorpayOrderId,
-                amount: data.amount,
-              });
-
-              return;
-            }
-
-            setPaymentStatus("Payment successful. Redirecting...");
-            setPaymentState("SUCCESS");
-
-            setRetryOrder(null);
-            setExpiresAt(null);
-            setTimeLeft(0);
-
-            setTimeout(() => {
-              setLoading(false);
-              setProcessingPayment(false);
-              setPaymentModalOpen(false);
-
-              router.push(
-                `/checkout/order-success?orderId=${retryOrder.orderId}`
-              );
-            }, 1500);
-          } catch (error) {
-            console.error(error);
-
-            setLoading(false);
-            setProcessingPayment(false);
-            setPaymentModalOpen(false);
-
-            alert("Payment verification failed");
-          }
+          startOrderStatusPolling(retryOrder.orderId);
         },
 
         modal: {
@@ -493,82 +472,70 @@ export default function CheckoutClient() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Checkout
-          </h1>
-  
-          <p className="text-gray-500 mt-1">
-            Complete your order securely
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+
+          <p className="text-gray-500 mt-1">Complete your order securely</p>
         </div>
-  
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* LEFT */}
           <div className="lg:col-span-8 space-y-6">
-  
             {/* Address */}
             <div className="bg-white border rounded-3xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">
                   1
                 </div>
-  
+
                 <div>
-                  <h2 className="font-semibold text-lg">
-                    Delivery Address
-                  </h2>
-  
+                  <h2 className="font-semibold text-lg">Delivery Address</h2>
+
                   <p className="text-sm text-gray-500">
                     Choose where you want your order delivered
                   </p>
                 </div>
               </div>
-  
+
               <AddressSelector
                 addresses={addresses}
                 selected={selectedAddress}
                 setSelected={setSelectedAddress}
               />
             </div>
-  
+
             {/* Items */}
             <div className="bg-white border rounded-3xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">
                   2
                 </div>
-  
+
                 <div>
-                  <h2 className="font-semibold text-lg">
-                    Review Items
-                  </h2>
-  
+                  <h2 className="font-semibold text-lg">Review Items</h2>
+
                   <p className="text-sm text-gray-500">
                     {cartItems.length} item(s) in your order
                   </p>
                 </div>
               </div>
-  
+
               <CheckoutItems items={cartItems} />
             </div>
           </div>
-  
+
           {/* RIGHT */}
           <div className="lg:col-span-4">
             <div className="sticky top-24">
               <div className="bg-white border rounded-3xl shadow-sm overflow-hidden">
-  
                 {/* Header */}
                 <div className="px-6 py-5 border-b bg-gray-50">
-                  <h2 className="font-semibold text-lg">
-                    Order Summary
-                  </h2>
-  
+                  <h2 className="font-semibold text-lg">Order Summary</h2>
+
                   <p className="text-sm text-gray-500">
                     Review and place your order
                   </p>
                 </div>
-  
+
                 <div className="p-6">
                   <OrderSummary
                     cartItems={cartItems}
@@ -579,7 +546,7 @@ export default function CheckoutClient() {
                   />
                 </div>
               </div>
-  
+
               {loading && (
                 <div className="mt-4 text-center text-sm text-gray-500">
                   Processing your order...
@@ -589,7 +556,7 @@ export default function CheckoutClient() {
           </div>
         </div>
       </div>
-  
+
       <PaymentProcessingModal
         open={paymentModalOpen}
         status={paymentStatus}

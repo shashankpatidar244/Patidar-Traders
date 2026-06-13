@@ -6,7 +6,13 @@ interface Props {
   paymentMethod: "COD" | "ONLINE";
   processing: boolean;
 
-  paymentState: "READY" | "PROCESSING" | "VERIFYING" | "FAILED" | "SUCCESS";
+  paymentState:
+    | "READY"
+    | "PROCESSING"
+    | "VERIFYING"
+    | "WAITING_WEBHOOK"
+    | "FAILED"
+    | "SUCCESS";
 
   timeLeft: number;
 
@@ -57,18 +63,50 @@ export default function PaymentProcessingModal({
     );
   }
 
-  // FAILED / Retry
+  // WAITING FOR WEBHOOK
+  if (paymentState === "WAITING_WEBHOOK") {
+    return (
+      <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+        {" "}
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+          {" "}
+          <div className="flex flex-col items-center text-center">
+            {" "}
+            <div className="mb-5 h-16 w-16 animate-spin rounded-full border-4 border-green-200 border-t-green-600" />
+            <h3 className="text-xl font-bold text-gray-900">
+              Confirming Payment
+            </h3>
+            <p className="mt-3 text-gray-600">{status}</p>
+            {timeLeft > 0 && (
+              <div className="mt-5 rounded-xl bg-green-50 px-4 py-3">
+                <p className="text-sm font-medium text-green-700">
+                  Session expires in {formatTime(timeLeft)}
+                </p>
+              </div>
+            )}
+            <p className="mt-5 text-xs text-gray-400">
+              Bank confirmation can take a few seconds. Please do not close this
+              page.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // FAILED
   if (paymentState === "FAILED") {
     return (
       <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+        {" "}
         <div className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+          {" "}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-gray-700"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
           >
-            ✕
+            ✕{" "}
           </button>
-
           <div className="text-center">
             <div className="mb-4 text-6xl">❌</div>
 
@@ -86,7 +124,7 @@ export default function PaymentProcessingModal({
 
                 <button
                   onClick={onRetry}
-                  className="mt-6 w-full rounded-2xl bg-orange-500 py-3 font-semibold text-white transition hover:bg-orange-600"
+                  className="mt-6 w-full rounded-2xl bg-orange-500 py-3 font-semibold text-white hover:bg-orange-600"
                 >
                   Retry Payment
                 </button>
@@ -141,11 +179,9 @@ export default function PaymentProcessingModal({
           <div className="flex flex-col items-center text-center">
             {" "}
             <div className="mb-5 h-16 w-16 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+            ```
             <h3 className="text-xl font-bold">Verifying Payment</h3>
             <p className="mt-3 text-gray-500">{status}</p>
-            <p className="mt-5 text-xs text-gray-400">
-              Please wait while we verify your transaction.
-            </p>
           </div>
         </div>
       </div>
@@ -157,22 +193,23 @@ export default function PaymentProcessingModal({
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
       {" "}
       <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+        {" "}
         <div className="border-b bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-5 text-white">
+          {" "}
           <div className="flex items-center justify-between">
+            {" "}
             <div>
-              <h2 className="text-xl font-bold">Secure Checkout</h2>
-
+              {" "}
+              <h2 className="text-xl font-bold">Secure Checkout </h2>
               <p className="mt-1 text-xs text-orange-100">
                 256-bit SSL Encrypted Payment
               </p>
             </div>
-
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
               🔒
             </div>
           </div>
         </div>
-
         {!processing ? (
           <>
             <div className="p-6">
