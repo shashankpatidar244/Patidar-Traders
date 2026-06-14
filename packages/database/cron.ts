@@ -9,14 +9,12 @@ import {
 export function startCronJobs() {
   console.log("🟢 Cron started");
 
-  
     // TEST
     // "* * * * *"
    
     // PROD
     // "*/10 * * * *"
    
-
   cron.schedule("*/10 * * * *", async () => {
     try {
       const now = new Date();
@@ -48,10 +46,8 @@ export function startCronJobs() {
 
       for (const order of orders) {
         await prisma.$transaction(async (tx) => {
-          /**
-           * IMPORTANT
-           * Prevent double execution
-           */
+          //  IMPORTANT
+          //  Prevent double execution
 
           const latestOrder =
             await tx.order.findUnique({
@@ -82,9 +78,7 @@ export function startCronJobs() {
             },
           });
 
-          /**
-           * Restore stock
-           */
+          //  Restore stock
 
           for (const item of order.items) {
             if (!item.variantId) continue;

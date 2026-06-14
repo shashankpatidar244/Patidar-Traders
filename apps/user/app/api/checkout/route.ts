@@ -228,7 +228,7 @@ export async function POST(req: Request) {
           }
         }
 
-        // DELETE CART
+        // DELETE CART 
    
         await tx.cartItem.deleteMany({
           where: {
