@@ -179,7 +179,6 @@ export default function PaymentProcessingModal({
           <div className="flex flex-col items-center text-center">
             {" "}
             <div className="mb-5 h-16 w-16 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
-            ```
             <h3 className="text-xl font-bold">Verifying Payment</h3>
             <p className="mt-3 text-gray-500">{status}</p>
           </div>

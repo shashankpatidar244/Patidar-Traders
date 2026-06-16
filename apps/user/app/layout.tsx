@@ -5,6 +5,7 @@ import Script from "next/script";
 import { initApp } from "./lib/startup";
 import { Toaster } from "react-hot-toast";
 
+
 export const metadata: Metadata = {
   title: "User App",
   description: "",
