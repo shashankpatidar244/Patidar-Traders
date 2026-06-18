@@ -93,7 +93,7 @@ export default function CartPageClient({ cartItems }: any) {
                 size={20}
                 className="text-slate-700 transition-all duration-300 group-hover:text-indigo-600 group-hover:-translate-x-0.5"
               />
-            </button>
+            </button> 
 
             <div>
               <h1 className="text-3xl font-bold text-slate-900">

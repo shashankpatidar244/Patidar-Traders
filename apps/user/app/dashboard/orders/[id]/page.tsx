@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { getUserFromRequest } from "@/lib/getUserFromRequest";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@repo/database";
@@ -17,6 +18,9 @@ import {
   CircleDot,
   FileText,
   CalendarDays,
+  XCircle,
+  Package,
+  ArrowLeft,
 } from "lucide-react";
 
 type OrderWithItems = Prisma.OrderGetPayload<{
@@ -81,20 +85,17 @@ export default async function OrderDetailsPage({ params }: PageProps) {
   const createdAt = new Date(order.createdAt);
   const updatedAt = new Date(order.updatedAt);
 
-  const shipping = 15;
+  const shipping = 0;
+  const platformFee = 0;
 
-  const actualSubtotal = order.items.reduce(
-    (total, item) => total + Number(item.price),
+  const itemsTotal = order.items.reduce(
+    (total, item) => total + Number(item.price) * item.quantity,
     0
   );
 
-  const subtotal = actualSubtotal;
+  const orderTotal = itemsTotal + shipping + platformFee;
 
-  const orderTotal = Number(order.total);
-
-  const taxes = Math.max(orderTotal - subtotal - shipping, 0);
-
-  const trackingId = order.trackingId ?? "FX-98234-A";
+  const trackingId = order.trackingId ?? "NULL";
 
   const isCancelled = order.status === "CANCELLED";
 
@@ -107,44 +108,63 @@ export default async function OrderDetailsPage({ params }: PageProps) {
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : "bg-amber-50 text-amber-700 border-amber-200";
 
-  const placedCompleted = true;
+  const displayTimeline =
+    order.status === "CANCELLED"
+      ? [
+          {
+            title: "Pending",
+            active: true,
+            date: createdAt,
+          },
+          {
+            title: "Cancelled",
+            active: true,
+            date: updatedAt,
+          },
+        ]
+      : [
+          {
+            title: "Pending",
+            active: true,
+            date: createdAt,
+          },
+          {
+            title: "Confirmed",
+            active: ["CONFIRMED", "PACKED", "COMPLETED"].includes(order.status),
+            date: updatedAt,
+          },
+          {
+            title: "Packed",
+            active:
+              order.status === "PACKED" ||
+              order.status === "COMPLETED" ||
+              ["PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(
+                order.deliveryStatus
+              ),
+            date: updatedAt,
+          },
+          {
+            title: "Shipped",
+            active: ["SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(
+              order.deliveryStatus
+            ),
+            date: updatedAt,
+          },
+          {
+            title: "Out For Delivery",
+            active: ["OUT_FOR_DELIVERY", "DELIVERED"].includes(
+              order.deliveryStatus
+            ),
+            date: updatedAt,
+          },
+          {
+            title: "Delivered",
+            active: order.deliveryStatus === "DELIVERED",
+            date: updatedAt,
+          },
+        ];
 
-  const processingCompleted = order.status !== "PENDING";
-
-  const shippedCompleted = [
-    "SHIPPED",
-    "OUT_FOR_DELIVERY",
-    "DELIVERED",
-  ].includes(order.deliveryStatus);
-
-  const deliveredCompleted = order.deliveryStatus === "DELIVERED";
-
-  const timeline = [
-    {
-      title: "Order Placed",
-      active: placedCompleted,
-      date: createdAt,
-    },
-    {
-      title: "Processing",
-      active: processingCompleted,
-      date: updatedAt,
-    },
-    {
-      title: "Shipped",
-      active: shippedCompleted,
-      date: updatedAt,
-    },
-    {
-      title: "Delivered",
-      active: deliveredCompleted,
-      date: updatedAt,
-    },
-  ];
-
-  const completedCount = timeline.filter(
-    (item: (typeof timeline)[number]) => item.active
-  ).length;
+  const completedCount = displayTimeline.filter((step) => step.active).length;
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800 antialiased p-4 md:p-8">
@@ -156,6 +176,16 @@ export default async function OrderDetailsPage({ params }: PageProps) {
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
+                <div className="mb-2">
+                  <Link
+                    href="/dashboard/orders"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Orders
+                  </Link>
+                </div>
+
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-1">
                   Order Details
                 </h1>
@@ -166,11 +196,7 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                   <br />
                   Ordered:
                   <span className="text-slate-800 ml-1">
-                    {createdAt.toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {createdAt.toLocaleDateString("en-IN")}
                   </span>
                 </p>
               </div>
@@ -260,11 +286,13 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                 {order.items.map((item: OrderWithItems["items"][number]) => {
                   const image = item.product.images[0]?.url;
 
-                  const unitPrice = Number(item.price) / item.quantity;
+                  const unitPrice = Number(item.price);
+                  const Price = Number(item.price) * item.quantity;
 
                   return (
-                    <div
+                    <Link
                       key={item.id}
+                      href={`/products/${item.productId}`}
                       className="flex items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-200"
                     >
                       {/* PRODUCT IMAGE */}
@@ -324,14 +352,14 @@ export default async function OrderDetailsPage({ params }: PageProps) {
 
                       <div className="text-right ml-4">
                         <div className="font-bold text-slate-900 text-lg">
-                          ₹{Number(item.price).toFixed(2)}
+                          ₹{Price.toFixed(2)}
                         </div>
 
                         <div className="text-[11px] text-slate-400 font-medium font-mono">
                           ₹{unitPrice.toFixed(2)} each
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -410,10 +438,10 @@ export default async function OrderDetailsPage({ params }: PageProps) {
 
                 <div className="border border-slate-200 rounded-2xl p-5 mb-5 bg-white shadow-sm space-y-3">
                   <div className="flex justify-between text-sm text-slate-600">
-                    <span>Subtotal ({order.items.length} items)</span>
+                    <span>Items Total ({order.items.length} items)</span>
 
                     <span className="font-medium text-slate-900">
-                      ₹{subtotal.toFixed(2)}
+                      ₹{itemsTotal.toFixed(2)}
                     </span>
                   </div>
 
@@ -426,10 +454,10 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                   </div>
 
                   <div className="flex justify-between text-sm text-slate-600">
-                    <span>Taxes</span>
+                    <span>Platform Fee</span>
 
                     <span className="font-medium text-slate-900">
-                      ₹{taxes.toFixed(2)}
+                      ₹{platformFee.toFixed(2)}
                     </span>
                   </div>
 
@@ -466,21 +494,31 @@ export default async function OrderDetailsPage({ params }: PageProps) {
               <div className="absolute left-[15px] top-2 bottom-6 w-0.5 bg-slate-200" />
               <div
                 className="absolute left-[15px] top-2 w-0.5 bg-indigo-500 transition-all"
-                style={{ height: `${completedCount * 80}px` }}
+                style={{
+                  height: `${Math.max((completedCount - 1) * 80, 0)}px`,
+                }}
               />
 
-              <div className="space-y-8 relative">
-                {timeline.map((step, index) => {
+              <div className="space-y-20 relative">
+                {displayTimeline.map((step, index) => {
                   const isActive = step.active;
 
                   const Icon =
-                    index === 0
-                      ? CheckCircle2
-                      : index === 1
-                        ? PackageCheck
-                        : index === 2
-                          ? Truck
-                          : CircleDot;
+                    step.title === "Pending"
+                      ? CircleDot
+                      : step.title === "Confirmed"
+                        ? CheckCircle2
+                        : step.title === "Packed"
+                          ? PackageCheck
+                          : step.title === "Shipped"
+                            ? Truck
+                            : step.title === "Out For Delivery"
+                              ? Truck
+                              : step.title === "Delivered"
+                                ? CheckCircle2
+                                : step.title === "Cancelled"
+                                  ? XCircle
+                                  : FileText;
 
                   return (
                     <div key={step.title} className="flex items-start gap-5">
@@ -522,8 +560,7 @@ export default async function OrderDetailsPage({ params }: PageProps) {
         </div>
 
         {/* FOOTER METADATA */}
-
-        <div className="rounded-[2rem] bg-white border border-slate-200 shadow-sm p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="rounded-[2rem] bg-white border border-slate-200 shadow-sm p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* CUSTOMER */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
             <h3 className="text-xs uppercase tracking-wider font-bold text-slate-500 flex items-center gap-2 mb-4">
@@ -534,12 +571,12 @@ export default async function OrderDetailsPage({ params }: PageProps) {
             <div className="space-y-2 text-sm font-medium text-slate-800">
               <p className="flex items-center gap-2">
                 <User className="w-4 h-4 text-slate-400" />
-                {order.shippingName}
+                {user.username}
               </p>
 
               <p className="flex items-center gap-2 text-slate-500">
                 <Phone className="w-4 h-4 text-slate-400" />
-                {order.shippingPhone}
+                {user.phone ? `+91 ${user.phone}` : "Phone not available"}
               </p>
             </div>
           </div>
@@ -590,6 +627,60 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                 {createdAt.toLocaleTimeString("en-IN")}
               </span>
             </p>
+          </div>
+
+          {/* ORDER STATUS */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+            <h3 className="text-xs uppercase tracking-wider font-bold text-slate-500 flex items-center gap-2 mb-4">
+              <Package className="w-4 h-4 text-slate-500" />
+              Order Status
+            </h3>
+
+            <div className="space-y-3">
+              {/* Order Status */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500">
+                  Order
+                </span>
+
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                    order.status === "CANCELLED"
+                      ? "bg-red-50 text-red-700 border-red-200"
+                      : order.status === "COMPLETED"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-blue-50 text-blue-700 border-blue-200"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {order.status.replaceAll("_", " ")}
+                </span>
+              </div>
+
+              <div className="border-t border-slate-200" />
+
+              {/* Delivery Status */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500">
+                  Delivery
+                </span>
+
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                    order.deliveryStatus === "DELIVERED"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : order.deliveryStatus === "OUT_FOR_DELIVERY"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : order.deliveryStatus === "FAILED"
+                          ? "bg-red-50 text-red-700 border-red-200"
+                          : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {order.deliveryStatus.replaceAll("_", " ")}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

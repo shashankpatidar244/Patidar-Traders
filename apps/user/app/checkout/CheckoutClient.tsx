@@ -6,6 +6,7 @@ import AddressSelector from "./AddressSelector";
 import CheckoutItems from "./CheckoutItems";
 import PaymentProcessingModal from "./PaymentProcessingModal";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 declare global {
   interface Window {
@@ -469,89 +470,166 @@ export default function CheckoutClient() {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+      <div className="min-h-screen bg-gradient-to-b from-[#fcfcfd] via-white to-zinc-50 text-zinc-900 p-4 md:p-10 lg:p-16">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 md:mb-12 flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-zinc-200/80 pb-6 md:pb-8">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push("/cart");
+                  }
+                }}
+                className="group flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 active:scale-95 shrink-0"
+                aria-label="Go back"
+              >
+                <ArrowLeft
+                  size={18}
+                  strokeWidth={2.5}
+                  className="text-zinc-600 transition-transform duration-200 group-hover:-translate-x-0.5"
+                />
+              </button>
 
-          <p className="text-gray-500 mt-1">Complete your order securely</p>
-        </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900">
+                  Checkout
+                </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* LEFT */}
-          <div className="lg:col-span-8 space-y-6">
-            {/* Address */}
-            <div className="bg-white border rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">
-                  1
-                </div>
-
-                <div>
-                  <h2 className="font-semibold text-lg">Delivery Address</h2>
-
-                  <p className="text-sm text-gray-500">
-                    Choose where you want your order delivered
-                  </p>
-                </div>
+                <p className="text-zinc-400 text-xs sm:text-sm mt-1 font-medium max-w-xl">
+                  Review your order and complete payment securely.
+                </p>
               </div>
-
-              <AddressSelector
-                addresses={addresses}
-                selected={selectedAddress}
-                setSelected={setSelectedAddress}
-              />
-            </div>
-
-            {/* Items */}
-            <div className="bg-white border rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold">
-                  2
-                </div>
-
-                <div>
-                  <h2 className="font-semibold text-lg">Review Items</h2>
-
-                  <p className="text-sm text-gray-500">
-                    {cartItems.length} item(s) in your order
-                  </p>
-                </div>
-              </div>
-
-              <CheckoutItems items={cartItems} />
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div className="lg:col-span-4">
-            <div className="sticky top-24">
-              <div className="bg-white border rounded-3xl shadow-sm overflow-hidden">
-                {/* Header */}
-                <div className="px-6 py-5 border-b bg-gray-50">
-                  <h2 className="font-semibold text-lg">Order Summary</h2>
+          {/* Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* LEFT SIDE */}
+            <div className="lg:col-span-8 space-y-8">
+              {/* Address Card */}
+              <div className="bg-white border border-zinc-200/70 rounded-2xl p-6 md:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.03),0_10px_30px_rgba(0,0,0,0.04)]">
+                <div className="flex items-start gap-4 mb-8">
+                  <div className="w-10 h-10 rounded-2xl bg-zinc-900 text-white flex items-center justify-center text-sm font-bold shadow-md shrink-0">
+                    1
+                  </div>
 
-                  <p className="text-sm text-gray-500">
-                    Review and place your order
-                  </p>
+                  <div>
+                    <h2 className="font-bold text-lg text-zinc-900 tracking-tight">
+                      Delivery Address
+                    </h2>
+
+                    <p className="text-xs md:text-sm text-zinc-400 font-medium mt-0.5">
+                      Choose where you want your order delivered.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-6">
-                  <OrderSummary
-                    cartItems={cartItems}
-                    loading={loading}
-                    onCheckout={handleCheckout}
-                    paymentMethod={paymentMethod}
-                    setPaymentMethod={setPaymentMethod}
+                <div className="border border-dashed border-zinc-300 bg-zinc-50/50 rounded-2xl p-6">
+                  <AddressSelector
+                    addresses={addresses}
+                    selected={selectedAddress}
+                    setSelected={setSelectedAddress}
                   />
                 </div>
               </div>
 
-              {loading && (
-                <div className="mt-4 text-center text-sm text-gray-500">
-                  Processing your order...
+              {/* Review Items */}
+              <div className="bg-white border border-zinc-200/70 rounded-2xl p-6 md:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.03),0_10px_30px_rgba(0,0,0,0.04)]">
+                <div className="flex items-start gap-4 mb-8">
+                  <div className="w-10 h-10 rounded-2xl bg-zinc-900 text-white flex items-center justify-center text-sm font-bold shadow-md shrink-0">
+                    2
+                  </div>
+
+                  <div>
+                    <h2 className="font-bold text-lg text-zinc-900 tracking-tight">
+                      Review Items
+                    </h2>
+
+                    <p className="text-xs md:text-sm text-zinc-400 font-medium mt-0.5">
+                      Review items carefully before confirming your order.
+                    </p>
+                  </div>
                 </div>
-              )}
+
+                <div className="border border-dashed border-zinc-300 bg-zinc-50/50 rounded-2xl p-6">
+                  <CheckoutItems items={cartItems} />
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT SIDE */}
+            <div className="lg:col-span-4">
+              <div className="sticky top-10 space-y-5">
+                {/* Summary */}
+                <div className="bg-white border border-zinc-200/80 rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02),0_12px_24px_rgba(0,0,0,0.03)]">
+                  <div className="px-6 py-5 border-b border-zinc-100 bg-zinc-50/50">
+                    <h2 className="font-bold text-sm text-zinc-900 uppercase tracking-wider">
+                      Order Summary
+                    </h2>
+
+                    <p className="text-xs text-zinc-400 font-medium mt-0.5">
+                      Review and place your order.
+                    </p>
+                  </div>
+
+                  <div className="p-5 bg-zinc-50/20">
+                    <OrderSummary
+                      cartItems={cartItems}
+                      loading={loading}
+                      onCheckout={handleCheckout}
+                      paymentMethod={paymentMethod}
+                      setPaymentMethod={setPaymentMethod}
+                    />
+                  </div>
+                </div>
+
+                {/* Processing State */}
+                {loading && (
+                  <div className="text-center py-3 px-4 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs font-mono font-bold text-zinc-400 flex items-center justify-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-300 animate-ping" />
+                    Processing your order...
+                  </div>
+                )}
+
+                {/* Payment Session Timer */}
+                {paymentMethod === "ONLINE" && timeLeft > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs uppercase tracking-wider font-bold text-amber-900">
+                        Payment Session
+                      </span>
+
+                      <span className="font-mono text-base font-bold text-amber-700">
+                        {Math.floor(timeLeft / 60000)}:
+                        {String(Math.floor((timeLeft % 60000) / 1000)).padStart(
+                          2,
+                          "0"
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 transition-all"
+                        style={{
+                          width: `${Math.max(
+                            0,
+                            (timeLeft / (10 * 60 * 1000)) * 100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-amber-700 mt-2">
+                      Complete payment before the session expires.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
