@@ -470,7 +470,7 @@ export default function CheckoutClient() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-b from-[#fcfcfd] via-white to-zinc-50 text-zinc-900 p-4 md:p-10 lg:p-16">
+      <div className="min-h-screen bg-gradient-to-b from-[#fcfcfd] via-white to-zinc-50 text-zinc-900 ">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8 md:mb-12 flex flex-col gap-4 sm:gap-6">
@@ -507,7 +507,7 @@ export default function CheckoutClient() {
           </div>
 
           {/* Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* LEFT SIDE */}
             <div className="lg:col-span-8 space-y-8">
               {/* Address Card */}
@@ -528,7 +528,7 @@ export default function CheckoutClient() {
                   </div>
                 </div>
 
-                <div className="border border-dashed border-zinc-300 bg-zinc-50/50 rounded-2xl p-6">
+                <div className="bg-zinc-50/50">
                   <AddressSelector
                     addresses={addresses}
                     selected={selectedAddress}
@@ -555,7 +555,7 @@ export default function CheckoutClient() {
                   </div>
                 </div>
 
-                <div className="border border-dashed border-zinc-300 bg-zinc-50/50 rounded-2xl p-6">
+                <div className="bg-zinc-50/50">
                   <CheckoutItems items={cartItems} />
                 </div>
               </div>

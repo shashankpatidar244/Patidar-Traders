@@ -8,7 +8,7 @@ export default async function CheckoutPage() {
   if (!user) redirect("/signin");
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6 bg-gradient-to-b from-[#fcfcfd] via-white to-zinc-50 text-zinc-900">
       <CheckoutStepper step={2} />
 
       {/* Order Summary + Checkout UI */}

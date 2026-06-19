@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import WishlistItem from "./WishlistItem";
 import Navbar from "@/cart/components/Navbar";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Heart } from "lucide-react";
 
 export default async function WishlistPage() {
   const user = await getUserFromRequest();
@@ -17,6 +17,8 @@ export default async function WishlistPage() {
       variant: true,
     },
   });
+
+  const isEmpty = items.length === 0;
 
   return (
     <div className="max-w-5xl mx-auto p-8 space-y-6">
@@ -77,11 +79,42 @@ export default async function WishlistPage() {
         </Link>
       </div>
 
-      <div className="space-y-4">
-        {items.map((item) => (
-          <WishlistItem key={item.id} item={item} />
-        ))}
-      </div>
+      {/* CONTENT */}
+      {isEmpty ? (
+        <div className="bg-white border border-gray-200 rounded-3xl p-12 text-center shadow-sm">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center">
+              <Heart className="text-pink-500" size={28} />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Your wishlist is empty
+          </h2>
+
+          <p className="text-gray-500 mb-6">
+            Save products you like and they will appear here.
+          </p>
+
+          <Link
+            href="/products"
+            className="
+                inline-flex items-center justify-center
+                px-6 py-3 rounded-xl
+                bg-orange-500 text-white font-medium
+                hover:bg-orange-600 transition
+              "
+          >
+            Start Shopping
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {items.map((item) => (
+            <WishlistItem key={item.id} item={item} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
