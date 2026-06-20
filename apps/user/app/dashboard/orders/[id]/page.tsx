@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 import CancelOrderButton from "./CancelOrderButton";
 import CopyTrackingButton from "./CopyTrackingButton";
 import ReorderButton from "./ReorderButton";
+import PaymentInfoButton from "./PaymentInfoButton";
 import {
   User,
   Phone,
@@ -471,14 +472,7 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                 </div>
 
                 {/* PAYMENT INFO */}
-
-                <button
-                  type="button"
-                  className="w-full sm:w-auto px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4 text-slate-400" />
-                  VIEW PAYMENT INFO
-                </button>
+                <PaymentInfoButton order={order} />
               </div>
             </div>
           </div>
