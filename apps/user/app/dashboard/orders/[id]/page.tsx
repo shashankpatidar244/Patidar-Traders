@@ -102,12 +102,29 @@ export default async function OrderDetailsPage({ params }: PageProps) {
 
   const isCompleted = order.status === "COMPLETED";
 
-  const disableCancel = isCancelled || isCompleted;
+  const canCancelOrder =
+    ["PENDING", "CONFIRMED", "PACKED"].includes(order.status) &&
+    ["PENDING", "PACKED"].includes(order.deliveryStatus);
+
+  const disableCancel = !canCancelOrder;
 
   const paymentBadgeColor =
     order.paymentStatus === "PAID"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+      : order.paymentStatus === "REFUNDED"
+        ? "bg-blue-50 text-blue-700 border-blue-200"
+        : order.paymentStatus === "FAILED"
+          ? "bg-red-50 text-red-700 border-red-200"
+          : "bg-amber-50 text-amber-700 border-amber-200";
+
+  const paymentStatusLabel =
+    order.paymentStatus === "PAID"
+      ? "Paid Successfully"
+      : order.paymentStatus === "REFUNDED"
+        ? "Refund Completed"
+        : order.paymentStatus === "FAILED"
+          ? "Payment Failed"
+          : "Payment Pending";
 
   const displayTimeline =
     order.status === "CANCELLED"
@@ -122,6 +139,26 @@ export default async function OrderDetailsPage({ params }: PageProps) {
             active: true,
             date: updatedAt,
           },
+          ...(order.paymentStatus === "PAID" ||
+          order.paymentStatus === "REFUNDED"
+            ? [
+                {
+                  title: "Refund Processing",
+                  active: true,
+                  date: updatedAt,
+                },
+              ]
+            : []),
+
+          ...(order.paymentStatus === "REFUNDED"
+            ? [
+                {
+                  title: "Refunded",
+                  active: true,
+                  date: updatedAt,
+                },
+              ]
+            : []),
         ]
       : [
           {
@@ -228,51 +265,70 @@ export default async function OrderDetailsPage({ params }: PageProps) {
               </div>
             </div>
 
+            {order.paymentStatus === "REFUNDED" && (
+              <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+
+                  <div>
+                    <p className="font-semibold text-blue-900">
+                      Refund Completed
+                    </p>
+
+                    <p className="text-sm text-blue-700">
+                      ₹{orderTotal.toLocaleString()} has been refunded to your
+                      original payment method.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* TRACKING ID */}
+            {!isCancelled && (
+              <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-200/60 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg border border-slate-200 text-slate-600 shadow-sm">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
 
-            <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-200/60 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white rounded-lg border border-slate-200 text-slate-600 shadow-sm">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1m-6 0a1 1 0 001-1m-6 0H7"
+                      />
+                    </svg>
+                  </div>
 
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1m-6 0a1 1 0 001-1m-6 0H7"
-                    />
-                  </svg>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Tracking Carrier
+                    </p>
+
+                    <p className="text-sm font-semibold text-slate-800">
+                      Tracking ID:
+                      <span className="ml-2 text-indigo-600 font-mono">
+                        {trackingId}
+                      </span>
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Tracking Carrier
-                  </p>
-
-                  <p className="text-sm font-semibold text-slate-800">
-                    Tracking ID:
-                    <span className="ml-2 text-indigo-600 font-mono">
-                      {trackingId}
-                    </span>
-                  </p>
+                <div className="shrink-0">
+                  <CopyTrackingButton trackingId={trackingId} />
                 </div>
               </div>
-
-              <div className="shrink-0">
-                <CopyTrackingButton trackingId={trackingId} />
-              </div>
-            </div>
-
+            )}
             {/* ORDER ITEMS */}
 
             <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-5 md:p-7 mb-8">
@@ -472,7 +528,16 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                 </div>
 
                 {/* PAYMENT INFO */}
-                <PaymentInfoButton order={order} />
+                <PaymentInfoButton
+                  order={{
+                    ...order,
+                    total: Number(order.total),
+                    items: order.items.map((item) => ({
+                      ...item,
+                      price: Number(item.price),
+                    })),
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -487,9 +552,9 @@ export default async function OrderDetailsPage({ params }: PageProps) {
               {/* timeline line */}
               <div className="absolute left-[15px] top-2 bottom-6 w-0.5 bg-slate-200" />
               <div
-                className="absolute left-[15px] top-2 w-0.5 bg-indigo-500 transition-all"
+                className="absolute left-[15px] top-2 w-[3px] rounded-full bg-gradient-to-b from-indigo-500 via-violet-500 to-emerald-500 transition-all duration-700"
                 style={{
-                  height: `${Math.max((completedCount - 1) * 80, 0)}px`,
+                  height: `calc(${Math.max(completedCount, 0)} * 5rem)`,
                 }}
               />
 
@@ -512,7 +577,11 @@ export default async function OrderDetailsPage({ params }: PageProps) {
                                 ? CheckCircle2
                                 : step.title === "Cancelled"
                                   ? XCircle
-                                  : FileText;
+                                  : step.title === "Refund Processing"
+                                    ? CreditCard
+                                    : step.title === "Refunded"
+                                      ? CheckCircle2
+                                      : FileText;
 
                   return (
                     <div key={step.title} className="flex items-start gap-5">
@@ -597,9 +666,13 @@ export default async function OrderDetailsPage({ params }: PageProps) {
             </h3>
 
             <p className="text-sm font-medium text-slate-800">
-              {order.paymentMethod}
+              {order.paymentMethod === "COD"
+                ? "Cash on Delivery"
+                : order.paymentMethod === "UPI"
+                  ? "UPI Payment"
+                  : "Card Payment"}
               <br />
-              <span className="text-slate-500">{order.paymentStatus}</span>
+              <span className="text-slate-500">{paymentStatusLabel}</span>
             </p>
           </div>
 

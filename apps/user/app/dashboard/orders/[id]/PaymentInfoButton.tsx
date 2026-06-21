@@ -5,8 +5,10 @@ import {
   X,
   CreditCard,
   Wallet,
-  CircleDollarSign,
-  BadgeCheck,
+  Smartphone,
+  Truck,
+  ShoppingBag,
+  BadgePercent,
 } from "lucide-react";
 
 interface PaymentInfoModalProps {
@@ -101,7 +103,7 @@ export default function PaymentInfoButton({ order }: PaymentInfoModalProps) {
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4">
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2 text-emerald-600 font-medium">
-                    <CircleDollarSign size={16} />
+                    <ShoppingBag size={16} />
                     <span>Items Total</span>
                   </div>
 
@@ -112,7 +114,7 @@ export default function PaymentInfoButton({ order }: PaymentInfoModalProps) {
 
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2 text-emerald-600 font-medium">
-                    <CircleDollarSign size={16} />
+                    <BadgePercent size={16} />
                     <span>Total Discount</span>
                   </div>
 
@@ -191,7 +193,15 @@ export default function PaymentInfoButton({ order }: PaymentInfoModalProps) {
               {/* Payment Card */}
               <div className="bg-[#f4f4f5] rounded-xl p-4 flex items-center gap-3">
                 <div className="bg-white border border-gray-200 rounded-lg px-3 py-2">
-                  <Wallet size={18} className="text-slate-700" />
+                  {order.paymentMethod === "COD" ? (
+                    <Truck size={18} className="text-slate-700" />
+                  ) : order.paymentMethod === "UPI" ? (
+                    <Smartphone size={18} className="text-slate-700" />
+                  ) : order.paymentMethod === "CARD" ? (
+                    <CreditCard size={18} className="text-slate-700" />
+                  ) : (
+                    <Wallet size={18} className="text-slate-700" />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 text-[15px]">
@@ -200,7 +210,13 @@ export default function PaymentInfoButton({ order }: PaymentInfoModalProps) {
                   </span>
 
                   <span className="text-slate-600">
-                    Paid by {order.paymentMethod || "Online Payment"}
+                    {order.paymentMethod === "COD"
+                      ? "Pay on Delivery"
+                      : order.paymentMethod === "UPI"
+                        ? "Paid via UPI"
+                        : order.paymentMethod === "CARD"
+                          ? "Paid via Card"
+                          : "Payment Method Unavailable"}
                   </span>
                 </div>
               </div>

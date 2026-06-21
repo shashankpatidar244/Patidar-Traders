@@ -2,6 +2,19 @@ import { prisma } from "@repo/database";
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "../../../lib/getUserFromRequest";
 
+const ALLOWED_ORDER_STATUS = ["PENDING", "CONFIRMED", "PACKED"] as const;
+
+const BLOCKED_ORDER_STATUS = ["COMPLETED", "CANCELLED"] as const;
+
+const ALLOWED_DELIVERY_STATUS = ["PENDING", "PACKED"] as const;
+
+const BLOCKED_DELIVERY_STATUS = [
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "FAILED",
+] as const;
+
 export async function POST(req: Request) {
   try {
     const user = await getUserFromRequest();
@@ -33,56 +46,83 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (order.status !== "PENDING") {
+    if (BLOCKED_ORDER_STATUS.includes(order.status as any)) {
       return NextResponse.json(
-        { error: "Only pending orders can be cancelled" },
+        { error: "This order cannot be cancelled" },
+        { status: 400 }
+      );
+    }
+
+    if (BLOCKED_DELIVERY_STATUS.includes(order.deliveryStatus as any)) {
+      return NextResponse.json(
+        {
+          error: "Order is already in shipping process and cannot be cancelled",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !ALLOWED_ORDER_STATUS.includes(order.status as any) ||
+      !ALLOWED_DELIVERY_STATUS.includes(order.deliveryStatus as any)
+    ) {
+      return NextResponse.json(
+        { error: "Order cannot be cancelled at this stage" },
         { status: 400 }
       );
     }
 
     await prisma.$transaction(async (tx) => {
-      for (const item of order.items) {
-        if (!item.variantId) continue;
+      // restore stock
+      const shouldRestoreStock =
+        order.status === "CONFIRMED" ||
+        order.status === "PACKED" ||
+        order.status === "COMPLETED";
 
-        const variant = await tx.productVariant.findUnique({
-          where: {
-            id: item.variantId,
-          },
-        });
+      if (shouldRestoreStock) {
+        for (const item of order.items) {
+          if (!item.variantId) continue;
 
-        if (!variant) continue;
+          const variant = await tx.productVariant.findUnique({
+            where: {
+              id: item.variantId,
+            },
+          });
 
-        const oldStock = variant.stock;
-        const newStock = oldStock + item.quantity;
-        
-        // Update stock
-        await tx.productVariant.update({
-          where: {
-            id: item.variantId,
-          },
-          data: {
-            stock: newStock,
-          },
-        });
-        
-        // Create inventory audit log
-        await tx.inventoryLog.create({
-          data: {
-            variantId: item.variantId,
-            oldStock,
-            newStock,
-            action: "ADD",
-            adminId: null,
-          },
-        });
+          if (!variant) continue;
+
+          const oldStock = variant.stock;
+          const newStock = oldStock + item.quantity;
+
+          await tx.productVariant.update({
+            where: {
+              id: item.variantId,
+            },
+            data: {
+              stock: newStock,
+            },
+          });
+
+          await tx.inventoryLog.create({
+            data: {
+              variantId: item.variantId,
+              oldStock,
+              newStock,
+              action: "ADD",
+              adminId: null,
+            },
+          });
+        }
       }
 
+      // cancel order
       await tx.order.update({
         where: {
           id: order.id,
         },
         data: {
           status: "CANCELLED",
+          deliveryStatus: "PENDING",
         },
       });
     });
