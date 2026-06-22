@@ -100,8 +100,6 @@ export default async function OrderDetailsPage({ params }: PageProps) {
 
   const isCancelled = order.status === "CANCELLED";
 
-  const isCompleted = order.status === "COMPLETED";
-
   const canCancelOrder =
     ["PENDING", "CONFIRMED", "PACKED"].includes(order.status) &&
     ["PENDING", "PACKED"].includes(order.deliveryStatus);
