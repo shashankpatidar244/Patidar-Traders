@@ -20,6 +20,7 @@ export default function ProfileContent({ user, defaultAddress }: any) {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
+    reset,
   } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -30,7 +31,7 @@ export default function ProfileContent({ user, defaultAddress }: any) {
 
   async function onProfileSubmit(data: UpdateProfileInput) {
     try {
-      const res = await fetch("/api/profile", {
+      const res = await fetch("/api/profile/update", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -38,15 +39,34 @@ export default function ProfileContent({ user, defaultAddress }: any) {
         body: JSON.stringify(data),
       });
 
+      const result = await res.json();
+
       if (!res.ok) {
-        throw new Error("Failed to update profile");
+        toast.error(result.error || "Failed to update profile");
+        return;
+      }
+      // PHONE CHANGE
+
+      if (result.phoneChanged) {
+        toast.success("OTP sent to new phone");
+
+        setProfileOpen(false);
+
+        router.push(`/verify-otp?phone=${result.phone}&type=change-phone`);
+
+        return;
       }
       toast.success("Profile updated successfully");
       setProfileOpen(false);
-
       router.refresh();
+
+      reset({
+        username: data.username,
+        phone: data.phone,
+      });
     } catch (error) {
       console.error(error);
+      toast.error("Something went wrong");
     }
   }
 

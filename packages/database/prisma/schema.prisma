@@ -9,14 +9,17 @@ datasource db {
 
 model User {
   id            Int            @id @default(autoincrement())
-  createdAt     DateTime       @default(now())
   isVerified    Boolean        @default(false)
   password      String?
   phone         String         @unique
-  updatedAt     DateTime       @updatedAt
+  pendingPhone  String?
   username      String?
   role          Role           @default(USER)
+  otp           String?
+  otpExpiresAt  DateTime?
   isBlocked     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   addresses     Address[]
   cartItem      CartItem[]
   inventoryLogs InventoryLog[]

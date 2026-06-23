@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 export default function EditProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [,] = useState("");
+  const [fetching, setFetching] = useState(true);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
@@ -20,16 +20,21 @@ export default function EditProfilePage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const res = await fetch("/api/profile");
+        const res = await fetch("/api/profile/update");
+
         if (res.ok) {
           const data = await res.json();
-          setUsername(data.name || "");
+
+          setUsername(data.username || "");
           setPhone(data.phone || "");
         }
-      } catch (err) {
-        console.error("Failed to fetch profile");
+      } catch (error) {
+        console.error("Failed to fetch profile", error);
+      } finally {
+        setFetching(false);
       }
     }
+
     fetchUser();
   }, []);
 
@@ -56,27 +61,43 @@ export default function EditProfilePage() {
 
     if (!result.success) {
       const firstError = result.error.issues[0]?.message || "Invalid input";
+
       setError(firstError);
+      toast.error(firstError);
       setLoading(false);
+
       return;
     }
 
     try {
-      const token = localStorage.getItem("accessToken");
       const res = await fetch("/api/profile/update", {
-        method: "POST",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(result.data),
       });
 
+      const data = await res.json();
+
+      if (data.phoneChanged) {
+        toast.success("OTP sent to new phone");
+
+        router.push(`/verify-otp?phone=${phone}&type=change-phone`);
+
+        return;
+      }
+
       if (res.ok) {
         toast.success("Profile updated successfully");
-        router.push("/dashboard/profile");
+
+        router.refresh();
+
+        setTimeout(() => {
+          router.push("/dashboard/profile");
+        }, 800);
       } else {
-        const data = await res.json();
+        toast.error(data.error || "Update failed");
         setError(data.error || "Update failed");
       }
     } catch (error) {
@@ -84,6 +105,14 @@ export default function EditProfilePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-[#f07b1a]" />
+      </div>
+    );
   }
 
   return (
