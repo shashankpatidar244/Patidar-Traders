@@ -83,7 +83,7 @@ export default function EditProfilePage() {
       if (data.phoneChanged) {
         toast.success("OTP sent to new phone");
 
-        router.push(`/verify-otp?phone=${phone}&type=change-phone`);
+        router.push(`/verify-otp?phone=${data.phone}&type=change-phone`);
 
         return;
       }

@@ -21,7 +21,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4 p-6 border rounded-lg">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md space-y-4 p-6 border rounded-lg"
+      >
         <h1 className="text-xl font-bold text-center">Forgot Password</h1>
 
         <input

@@ -119,6 +119,7 @@ export async function PATCH(req: NextRequest) {
           id: user.id,
         },
         data: {
+          username,
           pendingPhone: phone,
           otp,
           otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
